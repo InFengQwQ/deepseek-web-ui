@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>DeepSeek</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="top-bar">
+    <div class="top-group">
+      <div class="field" style="min-width: 200px;">
+        <label>API KEY</label>
+        <input type="password" id="apiKeyInput" placeholder="sk-..." autocomplete="off">
+      </div>
+      <div class="field">
+        <label>模型</label>
+        <select id="modelSelect">
+          <option value="deepseek-v4-flash">deepseek-v4-flash</option>
+          <option value="deepseek-v4-pro">deepseek-v4-pro</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="switch-label">
+          <input type="checkbox" id="thinkingToggle">
+          <span>深度思考</span>
+        </label>
+      </div>
+      <div class="field" id="effortField">
+        <label>思考强度</label>
+        <select id="effortSelect">
+          <option value="high">high</option>
+          <option value="max" selected>max</option>
+        </select>
+      </div>
+      <div class="field" id="tempField" style="display: none;">
+        <label>温度</label>
+        <input type="number" id="tempInput" value="0.7" step="0.1" min="0" max="2" style="width:6rem;">
+      </div>
+      <button id="saveConfigBtn" class="primary small">保存配置</button>
+    </div>
+    <div class="top-group right">
+      <button id="exportBtn" class="small">导出</button>
+      <button id="importBtn" class="small">导入</button>
+      <button id="clearHistoryBtn" class="small danger-btn">清空对话</button>
+    </div>
+  </div>
+
+  <div class="chat-pane" id="chatContainer"></div>
+
+  <button class="scroll-to-bottom-btn hidden" id="scrollToBottomBtn" title="回到最底部">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>
+  </button>
+
+  <div class="status-bar" id="statusMsg">就绪</div>
+
+  <button class="stop-generation-btn" id="stopGenBtn" style="display: none;" title="停止生成">
+    <svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2" /></svg>
+  </button>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify/dist/purify.min.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
