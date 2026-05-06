@@ -1,5 +1,3 @@
-// Actions module: handles user interactions and event handlers
-
 let apiKeyInput = null;
 let modelSelect = null;
 let thinkingToggle = null;
@@ -13,21 +11,21 @@ let exportBtn = null;
 let importBtn = null;
 
 function initActions() {
-  apiKeyInput = document.getElementById('apiKeyInput');
-  modelSelect = document.getElementById('modelSelect');
-  thinkingToggle = document.getElementById('thinkingToggle');
-  effortSelect = document.getElementById('effortSelect');
-  tempInput = document.getElementById('tempInput');
-  effortField = document.getElementById('effortField');
-  tempField = document.getElementById('tempField');
-  saveBtn = document.getElementById('saveConfigBtn');
-  clearBtn = document.getElementById('clearHistoryBtn');
-  exportBtn = document.getElementById('exportBtn');
-  importBtn = document.getElementById('importBtn');
-  chatContainer = document.getElementById('chatContainer');
-  statusSpan = document.getElementById('statusMsg');
-  stopBtn = document.getElementById('stopGenBtn');
-  scrollToBottomBtn = document.getElementById('scrollToBottomBtn');
+  apiKeyInput = DomRefs.apiKeyInput;
+  modelSelect = DomRefs.modelSelect;
+  thinkingToggle = DomRefs.thinkingToggle;
+  effortSelect = DomRefs.effortSelect;
+  tempInput = DomRefs.tempInput;
+  effortField = DomRefs.effortField;
+  tempField = DomRefs.tempField;
+  saveBtn = DomRefs.saveBtn;
+  clearBtn = DomRefs.clearBtn;
+  exportBtn = DomRefs.exportBtn;
+  importBtn = DomRefs.importBtn;
+  chatContainer = DomRefs.chatContainer;
+  statusSpan = DomRefs.statusSpan;
+  stopBtn = DomRefs.stopBtn;
+  scrollToBottomBtn = DomRefs.scrollToBottomBtn;
 
   bindEvents();
 }
@@ -93,7 +91,7 @@ function stopGeneration() {
 function clearAllMessages() {
   if (confirm('清空所有对话？')) {
     setMessages([]);
-    incrementNextId(); // Reset nextId to 1
+    incrementNextId();
     renderMessages();
     persistMessages();
     setStatus('对话已清空');

@@ -1,15 +1,13 @@
-// Render module: handles DOM updates and message rendering
-
 let chatContainer = null;
 let statusSpan = null;
 let stopBtn = null;
 let scrollToBottomBtn = null;
 
 function initRender() {
-  chatContainer = document.getElementById('chatContainer');
-  statusSpan = document.getElementById('statusMsg');
-  stopBtn = document.getElementById('stopGenBtn');
-  scrollToBottomBtn = document.getElementById('scrollToBottomBtn');
+  chatContainer = DomRefs.chatContainer;
+  statusSpan = DomRefs.statusSpan;
+  stopBtn = DomRefs.stopBtn;
+  scrollToBottomBtn = DomRefs.scrollToBottomBtn;
 }
 
 function renderMessages() {
@@ -262,7 +260,6 @@ function evaluateScrollToBottom() {
   }
 }
 
-// ---------- 消息操作函数 ----------
 function insertUserMessageAfter(afterMsgId) {
   const idx = findMessageIndexById(afterMsgId);
   if (idx === -1) return;

@@ -1,5 +1,3 @@
-// API module: handles network requests to DeepSeek API
-
 const BETA_URL = 'https://api.deepseek.com/beta/chat/completions';
 
 function buildRequestBody(messagesArray, useThinking, extra = {}) {
@@ -22,7 +20,7 @@ function buildRequestBody(messagesArray, useThinking, extra = {}) {
 async function streamWithAbort(requestBody, contentCallback, reasoningCallback, onComplete, onError) {
   const controller = new AbortController();
   setCurrentAbortController(controller);
-  setHidden(document.getElementById('stopGenBtn'), false);
+  setHidden(stopBtn, false);
   setIsGenerating(true);
   renderMessages();
 
@@ -57,14 +55,12 @@ async function streamWithAbort(requestBody, contentCallback, reasoningCallback, 
         const trimmed = line.trim();
         if (!trimmed || trimmed === 'data: [DONE]') continue;
         if (trimmed.startsWith('data: ')) {
-          try {
-            const chunk = JSON.parse(trimmed.slice(6));
-            const delta = chunk.choices?.[0]?.delta;
-            if (delta) {
-              if (delta.reasoning_content && reasoningCallback) reasoningCallback(delta.reasoning_content);
-              if (delta.content && contentCallback) contentCallback(delta.content);
-            }
-          } catch (e) {}
+          const chunk = JSON.parse(trimmed.slice(6));
+          const delta = chunk.choices?.[0]?.delta;
+          if (delta) {
+            if (delta.reasoning_content && reasoningCallback) reasoningCallback(delta.reasoning_content);
+            if (delta.content && contentCallback) contentCallback(delta.content);
+          }
         }
       }
     }
@@ -84,7 +80,7 @@ function cleanupGeneration() {
   setIsGenerating(false);
   setActiveGeneratingMessageId(null);
   setCurrentAbortController(null);
-  setHidden(document.getElementById('stopGenBtn'), true);
+  setHidden(stopBtn, true);
   renderMessages();
 }
 
@@ -147,6 +143,13 @@ async function runAssistantTask(requestBody, msgId, loadingText, doneText, optio
   );
 }
 
+function startGeneration(requestBody, msgId, options = {}) {
+  setActiveGeneratingMessageId(msgId);
+  renderMessages();
+  persistMessages();
+  return runAssistantTask(requestBody, msgId, '生成中...', '生成完成', options);
+}
+
 async function generateNewResponse(afterMsgId) {
   if (!ensureCanStartGeneration(true)) return;
   const idx = findMessageIndexById(afterMsgId);
@@ -155,13 +158,10 @@ async function generateNewResponse(afterMsgId) {
   const requestBody = buildRequestBody(context, getThinkingEnabled());
 
   const tempMessage = createMessage('assistant', '', { reasoning_content: '' });
-  setActiveGeneratingMessageId(tempMessage.id);
   setMessages([...getMessages().slice(0, idx + 1), tempMessage, ...getMessages().slice(idx + 1)]);
   ensureAssistantVersion(tempMessage);
-  renderMessages();
-  persistMessages();
 
-  await runAssistantTask(requestBody, tempMessage.id, '流式生成新回复...', '生成完成', { versionIndex: 0 });
+  await startGeneration(requestBody, tempMessage.id, { versionIndex: 0 });
 }
 
 async function prefixCompletion(assistantId) {
@@ -176,8 +176,7 @@ async function prefixCompletion(assistantId) {
     { role: 'assistant', content: targetMsg.content, prefix: true }
   ];
   
-  setActiveGeneratingMessageId(assistantId);
-  await runAssistantTask(buildRequestBody(apiMessages, false), assistantId, '前缀续写中...', '续写完成', {
+  await startGeneration(buildRequestBody(apiMessages, false), assistantId, {
     isPrefix: true,
     originalContent: targetMsg.content,
     versionIndex: targetMsg.currentVersionIndex
@@ -189,15 +188,10 @@ async function regenerateAssistant(assistantId) {
   const idx = findMessageIndexById(assistantId);
   if (idx === -1 || getMessages()[idx].role !== 'assistant') return;
   const historyBefore = getMessages().slice(0, idx);
-  if (historyBefore.length === 0) { setStatus('无上文，无法重新生成'); return; }
   const targetMsg = getMessages()[idx];
   const versionIndex = appendAssistantVersion(targetMsg, { content: '', reasoning_content: '' });
   if (versionIndex === null) return;
 
-  setActiveGeneratingMessageId(assistantId);
-  renderMessages();
-  persistMessages();
-
   const requestBody = buildRequestBody(historyBefore.map(toApiMessage), getThinkingEnabled());
-  await runAssistantTask(requestBody, assistantId, '重新生成中...', '重新生成完成', { versionIndex });
+  await startGeneration(requestBody, assistantId, { versionIndex });
 }

@@ -60,12 +60,14 @@
   </button>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/dompurify/dist/purify.min.js"></script>
+  <script src="script/dom.js" defer></script>
   <script src="script/state.js" defer></script>
   <script src="script/api.js" defer></script>
   <script src="script/render.js" defer></script>
   <script src="script/actions.js" defer></script>
   <script>
-    document.addEventListener("DOMContentLoaded", function() {
+    document.addEventListener('DOMContentLoaded', () => {
+      if (typeof initDomRefs === 'function') initDomRefs();
       loadMessagesFromStorage();
       initRender();
       initActions();

@@ -1,5 +1,3 @@
-// State module: manages messages, config, and global state
-// ---------- 状态 ----------
 let messages = [];
 let nextId = 1;
 let isGenerating = false;
@@ -22,7 +20,6 @@ let thinkingEnabled = localStorage.getItem(STORAGE_KEYS.thinking) === 'true';
 let reasoningEffort = localStorage.getItem(STORAGE_KEYS.reasoningEffort) || 'max';
 let temperature = parseFloat(localStorage.getItem(STORAGE_KEYS.temperature) || '0.7');
 
-// ---------- 状态管理函数 ----------
 function getMessages() {
   return messages;
 }
@@ -103,7 +100,6 @@ function setTemperature(temp) {
   temperature = temp;
 }
 
-// ---------- 消息操作函数 ----------
 function createMessage(role, content = '', options = {}) {
   return {
     id: Number.isFinite(options.id) ? options.id : nextId++,
@@ -134,19 +130,16 @@ function buildApiContextThroughIndex(endIndex) {
 
 function ensureCanStartGeneration(requireApiKey = true) {
   if (isGenerating) {
-    setStatus('请等待当前任务完成');
     return false;
   }
   if (requireApiKey && !apiKey) {
-    setStatus('请填写 API Key');
     return false;
   }
   return true;
 }
 
-// ---------- 消息持久化函数 ----------
 function persistMessages() {
-  localStorage.setItem(STORAGE_KEYS.messages, JSON.stringify(messages.map(m => ({
+  const toStore = messages.map(m => ({
     id: m.id,
     role: m.role,
     content: m.content,
@@ -154,23 +147,20 @@ function persistMessages() {
     createdAt: m.createdAt,
     versions: m.role === 'assistant' && Array.isArray(m.versions) ? m.versions.map(cloneVersionEntry) : undefined,
     currentVersionIndex: m.role === 'assistant' && Number.isInteger(m.currentVersionIndex) ? m.currentVersionIndex : undefined
-  }))));
+  }));
+  localStorage.setItem(STORAGE_KEYS.messages, JSON.stringify(toStore));
 }
 
 function loadMessagesFromStorage() {
   const stored = localStorage.getItem(STORAGE_KEYS.messages);
-  if (stored) {
-    try {
-      const parsed = JSON.parse(stored);
-      if (Array.isArray(parsed)) {
-        messages = parsed.map(normalizeMessageRecord);
-        nextId = Math.max(0, ...messages.map(m => (Number.isFinite(m.id) ? m.id : 0))) + 1;
-      }
-    } catch (e) { console.warn(e); }
-  }
+  if (!stored) return;
+  const parsed = JSON.parse(stored);
+  const normalized = parsed.map(normalizeMessageRecord).filter(m => m && (m.role === 'user' || m.role === 'assistant'));
+  messages = normalized;
+  const maxId = messages.length > 0 ? Math.max(...messages.map(m => (Number.isFinite(m.id) ? m.id : 0))) : 0;
+  nextId = Math.max(1, maxId + 1);
 }
 
-// ---------- 辅助函数 ----------
 function formatMessageTime(createdAt) {
   const date = createdAt ? new Date(createdAt) : new Date();
   if (Number.isNaN(date.getTime())) return '--:--';

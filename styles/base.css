@@ -140,7 +140,7 @@ body {
   transform: translateY(-50%);
   width: 0.9rem;
   height: 0.9rem;
-  background: white;
+  background: #fff;
   border-radius: 50%;
   transition: transform 0.2s;
 }
@@ -174,7 +174,7 @@ button:hover {
 button.primary {
   background: var(--bg-accent-strong);
   border-color: #334155;
-  color: white;
+  color: #fff;
 }
 
 button.primary:hover {
