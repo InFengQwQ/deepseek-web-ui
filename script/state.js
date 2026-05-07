@@ -10,6 +10,7 @@ const STORAGE_KEYS = {
   thinking: 'ds_thinking',
   reasoningEffort: 'ds_reasoning_effort',
   temperature: 'ds_temp',
+  systemPrompt: 'ds_system_prompt',
   messages: 'ds_chat_messages'
 };
 const STATUS_IDLE = '就绪';
@@ -19,6 +20,7 @@ let model = localStorage.getItem(STORAGE_KEYS.model) || 'deepseek-v4-pro';
 let thinkingEnabled = localStorage.getItem(STORAGE_KEYS.thinking) === 'true';
 let reasoningEffort = localStorage.getItem(STORAGE_KEYS.reasoningEffort) || 'max';
 let temperature = parseFloat(localStorage.getItem(STORAGE_KEYS.temperature) || '0.7');
+let systemPrompt = localStorage.getItem(STORAGE_KEYS.systemPrompt) || '';
 
 function getMessages() {
   return messages;
@@ -100,6 +102,14 @@ function setTemperature(temp) {
   temperature = temp;
 }
 
+function getSystemPrompt() {
+  return systemPrompt;
+}
+
+function setSystemPrompt(prompt) {
+  systemPrompt = prompt;
+}
+
 function createMessage(role, content = '', options = {}) {
   return {
     id: Number.isFinite(options.id) ? options.id : nextId++,
@@ -121,6 +131,11 @@ function findMessageIndexById(messageId) {
 
 function toApiMessage(msg) {
   return { role: msg.role, content: msg.content };
+}
+
+function buildSystemPromptMessage() {
+  const prompt = getSystemPrompt();
+  return typeof prompt === 'string' && prompt.trim() ? { role: 'system', content: prompt } : null;
 }
 
 function buildApiContextThroughIndex(endIndex) {

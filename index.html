@@ -38,6 +38,7 @@
         <label>温度</label>
         <input type="number" id="tempInput" class="narrow-number" value="0.7" step="0.1" min="0" max="2">
       </div>
+      <button id="systemPromptBtn" class="small">系统提示词</button>
       <button id="saveConfigBtn" class="primary small">保存配置</button>
       <div class="top-actions-row">
         <button id="exportBtn" class="small">导出</button>
@@ -48,6 +49,22 @@
   </div>
 
   <div class="chat-pane" id="chatContainer"></div>
+
+  <div class="modal-overlay is-hidden" id="systemPromptModal" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="systemPromptTitle">
+      <div class="modal-header">
+        <div>
+          <h2 id="systemPromptTitle">系统提示词</h2>
+          <p>这里的内容会作为 system message 随每次请求一起发送。</p>
+        </div>
+        <button type="button" class="icon-btn modal-close-btn" id="systemPromptCloseBtn" aria-label="关闭">×</button>
+      </div>
+      <label class="modal-field">
+        <span>内容</span>
+        <textarea id="systemPromptInput" class="compact-textarea system-prompt-textarea" rows="10"></textarea>
+      </label>
+    </div>
+  </div>
 
   <button class="scroll-to-bottom-btn hidden" id="scrollToBottomBtn" title="回到最底部">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>

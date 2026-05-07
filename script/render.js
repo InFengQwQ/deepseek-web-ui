@@ -3,6 +3,31 @@ let statusSpan = null;
 let stopBtn = null;
 let scrollToBottomBtn = null;
 
+function autoResizeTextarea(textarea, options = {}) {
+  const minHeight = options.minHeight ?? 0;
+  const maxHeight = options.maxHeight ?? Number.POSITIVE_INFINITY;
+  const clampOverflow = options.clampOverflow ?? false;
+
+  const resize = () => {
+    textarea.style.height = 'auto';
+    const nextHeight = Math.min(Math.max(textarea.scrollHeight, minHeight), maxHeight);
+    textarea.style.height = `${nextHeight}px`;
+
+    if (clampOverflow) {
+      if (textarea.scrollHeight > maxHeight) {
+        textarea.style.overflowY = 'auto';
+        textarea.scrollTop = textarea.scrollHeight;
+      } else {
+        textarea.style.overflowY = 'hidden';
+      }
+    }
+  };
+
+  textarea.addEventListener('input', resize);
+  resize();
+  return resize;
+}
+
 function initRender() {
   chatContainer = DomRefs.chatContainer;
   statusSpan = DomRefs.statusSpan;
@@ -35,21 +60,7 @@ function renderMessages() {
       persistMessages();
     };
     const emptyInput = document.getElementById('emptyInput');
-    const autoResize = () => {
-      emptyInput.style.height = 'auto';
-      const baseHeight = 36;
-      const maxHeight = 168;
-      const nextHeight = Math.min(Math.max(emptyInput.scrollHeight, baseHeight), maxHeight);
-      emptyInput.style.height = nextHeight + 'px';
-      if (emptyInput.scrollHeight > maxHeight) {
-        emptyInput.style.overflowY = 'auto';
-        emptyInput.scrollTop = emptyInput.scrollHeight;
-      } else {
-        emptyInput.style.overflowY = 'hidden';
-      }
-    };
-    emptyInput.addEventListener('input', autoResize);
-    autoResize();
+    autoResizeTextarea(emptyInput, { minHeight: 36, maxHeight: 168, clampOverflow: true });
     return;
   }
 
@@ -278,16 +289,10 @@ function editMessage(msgId, contentDiv, actionsDiv, isNew = false) {
   if (contentDiv.querySelector('textarea')) return;
 
   const textarea = document.createElement('textarea');
-  textarea.className = 'message-edit-textarea';
+  textarea.className = 'compact-textarea message-edit-textarea';
   textarea.value = msg.content;
-  textarea.style.fieldSizing = 'content';
 
-  const autoResize = () => {
-    textarea.style.height = 'auto';
-    textarea.style.height = textarea.scrollHeight + 'px';
-  };
-  textarea.addEventListener('input', autoResize);
-  setTimeout(autoResize, 0);
+  autoResizeTextarea(textarea);
 
   const saveBtn = document.createElement('button');
   saveBtn.className = 'small primary';

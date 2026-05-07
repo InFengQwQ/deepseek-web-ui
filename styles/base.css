@@ -19,6 +19,7 @@
   --radius-sm: 0.4rem;
   --radius-md: 0.5rem;
   --radius-lg: 0.7rem;
+  --textarea-compact-height: 97px;
 }
 
 * {
@@ -83,12 +84,9 @@ body {
   min-width: 200px;
 }
 
-.field.is-hidden {
-  display: none;
-}
-
 .field input,
-.field select {
+.field select,
+.field textarea {
   background: var(--bg-panel);
   border: 1px solid var(--border-soft);
   padding: 0.45rem 0.7rem;
@@ -99,12 +97,89 @@ body {
   transition: border 0.15s, box-shadow 0.15s;
 }
 
+.field textarea {
+  min-height: 4.5rem;
+  resize: vertical;
+}
+
+.compact-textarea {
+  width: 100%;
+  height: var(--textarea-compact-height);
+  min-height: var(--textarea-compact-height);
+  padding: 0.5rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-soft);
+  resize: none;
+  box-sizing: border-box;
+  background: var(--bg-panel);
+  font-family: inherit;
+  line-height: 1.5;
+  color: var(--text-primary);
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.48);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 60;
+}
+
+.modal-card {
+  width: min(720px, 100%);
+  background: var(--bg-panel);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 1rem;
+  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.24);
+  padding: 1rem 1rem 0.9rem;
+}
+
+.modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.9rem;
+}
+
+.modal-header h2 {
+  font-size: 1.05rem;
+  line-height: 1.3;
+  margin-bottom: 0.2rem;
+}
+
+.modal-header p {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.modal-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.modal-close-btn {
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border-radius: 999px;
+  flex: none;
+}
+
 .field input.narrow-number {
   width: 6rem;
 }
 
 .field input:focus,
-.field select:focus {
+.field select:focus,
+.field textarea:focus {
   border-color: var(--bg-accent);
   box-shadow: var(--focus-ring);
 }
@@ -195,5 +270,18 @@ button.small {
 .danger-btn:hover {
   background: #fee2e2;
   border-color: #f5b5b5;
+}
+
+@media (max-width: 700px) {
+  .modal-overlay {
+    padding: 0.75rem;
+    align-items: flex-end;
+  }
+
+  .modal-card {
+    width: 100%;
+    border-radius: 0.9rem 0.9rem 0.7rem 0.7rem;
+    padding: 0.9rem;
+  }
 }
 

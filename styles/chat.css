@@ -403,16 +403,14 @@
 }
 
 .message-edit-textarea {
-  width: 100%;
-  min-height: 100px;
-  font-family: inherit;
-  padding: 0.5rem;
   margin-top: 0.5rem;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-soft);
-  resize: none;
   overflow: hidden;
-  box-sizing: border-box;
+}
+
+.system-prompt-textarea {
+  overflow: auto;
+  margin-top: 0;
+  margin-bottom: 0.9rem;
 }
 
 .message-edit-actions {

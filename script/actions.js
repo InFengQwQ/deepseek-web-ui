@@ -3,6 +3,10 @@ let modelSelect = null;
 let thinkingToggle = null;
 let effortSelect = null;
 let tempInput = null;
+let systemPromptInput = null;
+let systemPromptBtn = null;
+let systemPromptModal = null;
+let systemPromptCloseBtn = null;
 let effortField = null;
 let tempField = null;
 let saveBtn = null;
@@ -16,6 +20,10 @@ function initActions() {
   thinkingToggle = DomRefs.thinkingToggle;
   effortSelect = DomRefs.effortSelect;
   tempInput = DomRefs.tempInput;
+  systemPromptInput = DomRefs.systemPromptInput;
+  systemPromptBtn = DomRefs.systemPromptBtn;
+  systemPromptModal = DomRefs.systemPromptModal;
+  systemPromptCloseBtn = DomRefs.systemPromptCloseBtn;
   effortField = DomRefs.effortField;
   tempField = DomRefs.tempField;
   saveBtn = DomRefs.saveBtn;
@@ -35,6 +43,28 @@ function setHidden(element, hidden) {
   element.classList.toggle('is-hidden', hidden);
 }
 
+function scrollSystemPromptToBottom() {
+  if (!systemPromptInput) return;
+  requestAnimationFrame(() => {
+    systemPromptInput.scrollTop = systemPromptInput.scrollHeight;
+  });
+}
+
+function openSystemPromptModal() {
+  if (!systemPromptModal || !systemPromptInput) return;
+  systemPromptInput.value = getSystemPrompt();
+  setHidden(systemPromptModal, false);
+  systemPromptModal.setAttribute('aria-hidden', 'false');
+  systemPromptInput.focus();
+  scrollSystemPromptToBottom();
+}
+
+function closeSystemPromptModal() {
+  if (!systemPromptModal) return;
+  setHidden(systemPromptModal, true);
+  systemPromptModal.setAttribute('aria-hidden', 'true');
+}
+
 function setStatus(text, resetAfterMs = 0) {
   statusSpan.innerText = text;
   if (resetAfterMs > 0) {
@@ -45,11 +75,10 @@ function setStatus(text, resetAfterMs = 0) {
 }
 
 function updateThinkingUI() {
+  if (!thinkingToggle) return;
   const enabled = thinkingToggle.checked;
-  setThinkingEnabled(enabled);
   setHidden(effortField, !enabled);
   setHidden(tempField, enabled);
-  localStorage.setItem(STORAGE_KEYS.thinking, enabled);
 }
 
 function syncConfigToUI() {
@@ -58,6 +87,8 @@ function syncConfigToUI() {
   thinkingToggle.checked = getThinkingEnabled();
   effortSelect.value = getReasoningEffort();
   tempInput.value = getTemperature();
+  systemPromptInput.value = getSystemPrompt();
+  scrollSystemPromptToBottom();
   updateThinkingUI();
 }
 
@@ -66,13 +97,16 @@ function saveConfiguration() {
   setModel(modelSelect.value);
   setThinkingEnabled(thinkingToggle.checked);
   setReasoningEffort(effortSelect.value);
+  setSystemPrompt(systemPromptInput.value);
   const newTemp = parseFloat(tempInput.value);
   if (!isNaN(newTemp)) setTemperature(newTemp);
   localStorage.setItem(STORAGE_KEYS.apiKey, getApiKey());
   localStorage.setItem(STORAGE_KEYS.model, getModel());
   localStorage.setItem(STORAGE_KEYS.thinking, getThinkingEnabled());
   localStorage.setItem(STORAGE_KEYS.reasoningEffort, getReasoningEffort());
+  localStorage.setItem(STORAGE_KEYS.systemPrompt, getSystemPrompt());
   localStorage.setItem(STORAGE_KEYS.temperature, getTemperature());
+  closeSystemPromptModal();
   setStatus('配置已保存', 1500);
 }
 
@@ -89,7 +123,7 @@ function stopGeneration() {
 }
 
 function clearAllMessages() {
-  if (confirm('清空所有对话？')) {
+  if (confirm('清空对话？')) {
     setMessages([]);
     incrementNextId();
     renderMessages();
@@ -151,6 +185,14 @@ function importConversation(file) {
 
 function bindEvents() {
   thinkingToggle.addEventListener('change', updateThinkingUI);
+  systemPromptInput.addEventListener('input', scrollSystemPromptToBottom);
+  systemPromptBtn.onclick = openSystemPromptModal;
+  systemPromptCloseBtn.onclick = closeSystemPromptModal;
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && !systemPromptModal.classList.contains('is-hidden')) {
+      closeSystemPromptModal();
+    }
+  });
   saveBtn.onclick = saveConfiguration;
   clearBtn.onclick = clearAllMessages;
   exportBtn.onclick = exportConversation;

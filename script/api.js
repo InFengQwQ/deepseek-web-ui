@@ -1,16 +1,19 @@
-const BETA_URL = 'https://api.deepseek.com/beta/chat/completions';
+const BASE_URL = 'https://api.deepseek.com/beta/chat/completions';
 
 function buildRequestBody(messagesArray, useThinking, extra = {}) {
+  const systemMessage = buildSystemPromptMessage();
+  const messages = systemMessage ? [systemMessage, ...messagesArray] : messagesArray;
   const body = {
     model: getModel(),
-    messages: messagesArray,
+    messages,
     max_tokens: 4096,
     stream: true,
   };
   if (useThinking) {
-    body.extra_body = { thinking: { type: "enabled", reasoning_effort: getReasoningEffort() } };
+    body.thinking = { type: 'enabled' };
+    body.reasoning_effort = getReasoningEffort();
   } else {
-    body.extra_body = { thinking: { type: "disabled" } };
+    body.thinking = { type: 'disabled' };
     body.temperature = getTemperature();
   }
   Object.assign(body, extra);
@@ -25,7 +28,7 @@ async function streamWithAbort(requestBody, contentCallback, reasoningCallback, 
   renderMessages();
 
   try {
-    const resp = await fetch(BETA_URL, {
+    const resp = await fetch(BASE_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

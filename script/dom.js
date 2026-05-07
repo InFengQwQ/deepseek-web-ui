@@ -10,6 +10,10 @@
     thinkingToggle: null,
     effortSelect: null,
     tempInput: null,
+    systemPromptInput: null,
+    systemPromptBtn: null,
+    systemPromptModal: null,
+    systemPromptCloseBtn: null,
     effortField: null,
     tempField: null,
     saveBtn: null,
@@ -29,6 +33,10 @@
     DomRefs.thinkingToggle = document.getElementById('thinkingToggle');
     DomRefs.effortSelect = document.getElementById('effortSelect');
     DomRefs.tempInput = document.getElementById('tempInput');
+    DomRefs.systemPromptInput = document.getElementById('systemPromptInput');
+    DomRefs.systemPromptBtn = document.getElementById('systemPromptBtn');
+    DomRefs.systemPromptModal = document.getElementById('systemPromptModal');
+    DomRefs.systemPromptCloseBtn = document.getElementById('systemPromptCloseBtn');
     DomRefs.effortField = document.getElementById('effortField');
     DomRefs.tempField = document.getElementById('tempField');
     DomRefs.saveBtn = document.getElementById('saveConfigBtn');
