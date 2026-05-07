@@ -7,11 +7,16 @@ function autoResizeTextarea(textarea, options = {}) {
   const minHeight = options.minHeight ?? 0;
   const maxHeight = options.maxHeight ?? Number.POSITIVE_INFINITY;
   const clampOverflow = options.clampOverflow ?? false;
+  const applyInitialHeight = options.applyInitialHeight ?? true;
 
-  const resize = () => {
-    textarea.style.height = 'auto';
+  const resize = ({ applyHeight = true } = {}) => {
+    if (applyHeight) {
+      textarea.style.height = 'auto';
+    }
     const nextHeight = Math.min(Math.max(textarea.scrollHeight, minHeight), maxHeight);
-    textarea.style.height = `${nextHeight}px`;
+    if (applyHeight) {
+      textarea.style.height = `${nextHeight}px`;
+    }
 
     if (clampOverflow) {
       if (textarea.scrollHeight > maxHeight) {
@@ -23,8 +28,8 @@ function autoResizeTextarea(textarea, options = {}) {
     }
   };
 
-  textarea.addEventListener('input', resize);
-  resize();
+  textarea.addEventListener('input', () => resize());
+  resize({ applyHeight: applyInitialHeight });
   return resize;
 }
 
@@ -292,8 +297,6 @@ function editMessage(msgId, contentDiv, actionsDiv, isNew = false) {
   textarea.className = 'compact-textarea message-edit-textarea';
   textarea.value = msg.content;
 
-  autoResizeTextarea(textarea);
-
   const saveBtn = document.createElement('button');
   saveBtn.className = 'small primary';
   saveBtn.innerText = '保存';
@@ -311,6 +314,8 @@ function editMessage(msgId, contentDiv, actionsDiv, isNew = false) {
   contentDiv.innerHTML = '';
   contentDiv.appendChild(textarea);
   contentDiv.appendChild(editActions);
+
+  autoResizeTextarea(textarea);
 
   if (actionsDiv) actionsDiv.style.opacity = '0';
   textarea.focus();

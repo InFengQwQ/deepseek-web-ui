@@ -404,6 +404,7 @@
 
 .message-edit-textarea {
   margin-top: 0.5rem;
+  height: auto;
   overflow: hidden;
 }
 
