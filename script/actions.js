@@ -30,7 +30,6 @@ function initActions() {
   clearBtn = DomRefs.clearBtn;
   exportBtn = DomRefs.exportBtn;
   importBtn = DomRefs.importBtn;
-  chatContainer = DomRefs.chatContainer;
   statusSpan = DomRefs.statusSpan;
   stopBtn = DomRefs.stopBtn;
   scrollToBottomBtn = DomRefs.scrollToBottomBtn;
@@ -125,7 +124,7 @@ function stopGeneration() {
 function clearAllMessages() {
   if (confirm('清空对话？')) {
     setMessages([]);
-    incrementNextId();
+    resetNextId();
     renderMessages();
     persistMessages();
     setStatus('对话已清空');

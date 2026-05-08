@@ -13,7 +13,6 @@ const STORAGE_KEYS = {
   systemPrompt: 'ds_system_prompt',
   messages: 'ds_chat_messages'
 };
-const STATUS_IDLE = '就绪';
 
 let apiKey = localStorage.getItem(STORAGE_KEYS.apiKey) || '';
 let model = localStorage.getItem(STORAGE_KEYS.model) || 'deepseek-v4-pro';
@@ -30,8 +29,8 @@ function setMessages(newMessages) {
   messages = newMessages;
 }
 
-function getNextId() {
-  return nextId;
+function resetNextId() {
+  nextId = 1;
 }
 
 function incrementNextId() {
