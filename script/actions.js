@@ -133,18 +133,14 @@ function clearAllMessages() {
 }
 
 function exportConversation() {
-  const data = {
-    version: "1.0",
-    exportedAt: new Date().toISOString(),
-    messages: getMessages().map(m => ({
-      role: m.role,
-      content: m.content,
-      reasoning_content: m.reasoning_content || null,
-      createdAt: m.createdAt,
-      versions: m.role === 'assistant' && Array.isArray(m.versions) ? m.versions.map(cloneVersionEntry) : undefined,
-      currentVersionIndex: m.role === 'assistant' && Number.isInteger(m.currentVersionIndex) ? m.currentVersionIndex : undefined
-    }))
-  };
+  const data = getMessages().map(m => ({
+    role: m.role,
+    content: m.content,
+    reasoning_content: m.reasoning_content || null,
+    createdAt: m.createdAt,
+    versions: m.role === 'assistant' && Array.isArray(m.versions) ? m.versions.map(cloneVersionEntry) : undefined,
+    currentVersionIndex: m.role === 'assistant' && Number.isInteger(m.currentVersionIndex) ? m.currentVersionIndex : undefined
+  }));
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');

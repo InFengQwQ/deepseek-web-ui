@@ -99,7 +99,7 @@ async function runAssistantTask(requestBody, msgId, loadingText, doneText, optio
       fullContent += chunk;
       const msg = findMessageById(msgId);
       if (msg) {
-        const targetVersion = getAssistantVersion(msg, versionIndex);
+        const targetVersion = versionIndex !== null ? getAssistantVersion(msg, versionIndex) : null;
         if (targetVersion) {
           targetVersion.content = isPrefix ? originalContent + fullContent : fullContent;
           if (msg.currentVersionIndex === versionIndex) {
@@ -113,7 +113,7 @@ async function runAssistantTask(requestBody, msgId, loadingText, doneText, optio
     isPrefix ? null : (chunk) => {
       const msg = findMessageById(msgId);
       if (msg) {
-        const targetVersion = getAssistantVersion(msg, versionIndex);
+        const targetVersion = versionIndex !== null ? getAssistantVersion(msg, versionIndex) : null;
         if (targetVersion) {
           targetVersion.reasoning_content = (targetVersion.reasoning_content || '') + chunk;
           if (msg.currentVersionIndex === versionIndex) {
@@ -126,7 +126,7 @@ async function runAssistantTask(requestBody, msgId, loadingText, doneText, optio
     () => {
       const msg = findMessageById(msgId);
       if (msg) {
-        const targetVersion = getAssistantVersion(msg, versionIndex);
+        const targetVersion = versionIndex !== null ? getAssistantVersion(msg, versionIndex) : null;
         if (targetVersion && !isPrefix && !fullContent) {
           targetVersion.content = '[空响应]';
           if (msg.currentVersionIndex === versionIndex) {
