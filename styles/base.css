@@ -50,7 +50,6 @@ body {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
-  justify-content: space-between;
   gap: 1rem;
   flex-shrink: 0;
   box-shadow: var(--shadow-soft);
@@ -98,14 +97,11 @@ body {
   line-height: 1.2;
   color: var(--text-primary);
   transition: border 0.15s, box-shadow 0.15s;
-}
-
-.field input:not([type="checkbox"]):not([type="radio"]),
-.field select {
   height: var(--control-height);
   min-height: var(--control-height);
   text-align: left;
 }
+
 
 .field select {
   appearance: none;
@@ -190,6 +186,50 @@ body {
   padding: 0;
   border-radius: 999px;
   flex: none;
+}
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  background: transparent;
+  border: none;
+  padding: 0.2rem;
+  color: var(--text-muted);
+  border-radius: 0.3rem;
+  box-shadow: none;
+}
+
+.action-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  background: transparent;
+  border: none;
+  padding: 0.2rem;
+  color: var(--text-muted);
+  border-radius: 0.3rem;
+  box-shadow: none;
+}
+
+.icon-btn svg,
+.action-icon-btn svg {
+  width: 15px;
+  height: 15px;
+}
+
+.icon-btn:hover:not(:disabled),
+.action-icon-btn:hover:not(:disabled) {
+  background: #f1f5f9;
+  color: var(--text-secondary);
+}
+
+.icon-btn:disabled,
+.action-icon-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
 }
 
 .field input.narrow-number {
@@ -304,4 +344,3 @@ button.small {
     padding: 0.75rem 0.8rem 0.7rem;
   }
 }
-
