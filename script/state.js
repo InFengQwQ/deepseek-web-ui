@@ -40,13 +40,17 @@ function persistConfig() {
 
 /* ---- Message creation & helpers ---- */
 
-function serializeMessageRecord(msg) {
-  var record = {
+function messageCoreFields(msg) {
+  return {
     role: msg.role,
     content: msg.content,
     reasoning_content: msg.reasoning_content || null,
     createdAt: msg.createdAt
   };
+}
+
+function serializeMessageRecord(msg) {
+  var record = messageCoreFields(msg);
   if (msg.role === 'assistant') {
     if (Array.isArray(msg.versions)) record.versions = msg.versions.map(cloneVersionEntry);
     if (Number.isInteger(msg.currentVersionIndex)) record.currentVersionIndex = msg.currentVersionIndex;
@@ -91,17 +95,17 @@ function persistMessages() {
 function loadMessagesFromStorage() {
   var stored = localStorage.getItem(STORAGE_KEYS.messages);
   if (!stored) return;
-  var parsed = JSON.parse(stored);
-  var normalized = parsed.map(normalizeMessageRecord).filter(function (m) { return m && (m.role === 'user' || m.role === 'assistant'); });
-  state.messages = normalized;
-  var maxId = state.messages.length > 0 ? Math.max.apply(null, state.messages.map(function (m) { return Number.isFinite(m.id) ? m.id : 0; })) : 0;
-  state.nextId = Math.max(1, maxId + 1);
-}
-
-function formatMessageTime(createdAt) {
-  var date = createdAt ? new Date(createdAt) : new Date();
-  if (isNaN(date.getTime())) return '--:--';
-  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  try {
+    var parsed = JSON.parse(stored);
+    var normalized = parsed.map(normalizeMessageRecord).filter(function (m) { return m && (m.role === 'user' || m.role === 'assistant'); });
+    state.messages = normalized;
+    var maxId = state.messages.length > 0 ? Math.max.apply(null, state.messages.map(function (m) { return Number.isFinite(m.id) ? m.id : 0; })) : 0;
+    state.nextId = Math.max(1, maxId + 1);
+  } catch (e) {
+    localStorage.removeItem(STORAGE_KEYS.messages);
+    state.messages = [];
+    state.nextId = 1;
+  }
 }
 
 function normalizeMessageRecord(msg) {

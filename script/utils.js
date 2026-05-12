@@ -9,6 +9,20 @@ function setHidden(element, hidden) {
   element.classList.toggle('is-hidden', hidden);
 }
 
+/* Set status bar text, optionally reset after N ms. */
+function setStatus(text, resetAfterMs) {
+  if (resetAfterMs === undefined) resetAfterMs = 0;
+  if (!DomRefs.statusSpan) return;
+  DomRefs.statusSpan.innerText = text;
+  if (resetAfterMs > 0) {
+    setTimeout(function () {
+      if (DomRefs.statusSpan && DomRefs.statusSpan.innerText === text) {
+        DomRefs.statusSpan.innerText = '就绪';
+      }
+    }, resetAfterMs);
+  }
+}
+
 /** Escape HTML special characters in a string. */
 function escapeHtml(input) {
   return String(input)
@@ -129,15 +143,22 @@ var ICONS = {
   prefix: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>'
 };
 
+/* Format a message timestamp to HH:MM. */
+function formatMessageTime(createdAt) {
+  var date = createdAt ? new Date(createdAt) : new Date();
+  if (isNaN(date.getTime())) return '--:--';
+  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
 /** Create a collapsible reasoning header element. */
 function createReasoningHeader(initialCollapsed) {
-  const header = document.createElement('div');
+  var header = document.createElement('div');
   header.className = 'reasoning-header';
 
-  const title = document.createElement('span');
+  var title = document.createElement('span');
   title.innerText = '思考过程';
 
-  const state = document.createElement('span');
+  var state = document.createElement('span');
   state.className = 'reasoning-header-state';
   state.innerText = initialCollapsed ? '(已折叠)' : '(点击折叠)';
 
@@ -150,15 +171,15 @@ function createReasoningHeader(initialCollapsed) {
 
 /** Create a complete reasoning block DOM element (collapsible). */
 function createReasoningBlockDOM(reasoningContent) {
-  const reasoningDiv = document.createElement('div');
+  var reasoningDiv = document.createElement('div');
   reasoningDiv.className = 'reasoning-block';
 
-  const hdr = createReasoningHeader(false);
-  const contentDiv = document.createElement('div');
+  var hdr = createReasoningHeader(false);
+  var contentDiv = document.createElement('div');
   contentDiv.className = 'reasoning-text prose-content';
   contentDiv.innerHTML = renderMarkdownToHTML(reasoningContent);
 
-  let collapsed = false;
+  var collapsed = false;
   hdr.header.onclick = function () {
     collapsed = !collapsed;
     setHidden(contentDiv, collapsed);
@@ -173,17 +194,17 @@ function createReasoningBlockDOM(reasoningContent) {
 /** Enable auto-resize on a textarea element. Returns a manual resize function. */
 function autoResizeTextarea(textarea, options) {
   if (options === undefined) options = {};
-  const minHeight = options.minHeight || 0;
-  const maxHeight = options.maxHeight || Number.POSITIVE_INFINITY;
-  const clampOverflow = options.clampOverflow || false;
-  const applyInitialHeight = options.applyInitialHeight !== false;
+  var minHeight = options.minHeight || 0;
+  var maxHeight = options.maxHeight || Number.POSITIVE_INFINITY;
+  var clampOverflow = options.clampOverflow || false;
+  var applyInitialHeight = options.applyInitialHeight !== false;
 
-  const resize = function (opts) {
+  var resize = function (opts) {
     if (opts === undefined) opts = {};
     if (opts.applyHeight !== false) {
       textarea.style.height = 'auto';
     }
-    const nextHeight = Math.min(Math.max(textarea.scrollHeight, minHeight), maxHeight);
+    var nextHeight = Math.min(Math.max(textarea.scrollHeight, minHeight), maxHeight);
     if (opts.applyHeight !== false) {
       textarea.style.height = nextHeight + 'px';
     }

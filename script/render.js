@@ -203,10 +203,6 @@ function renderMessages() {
     state.messages.forEach(function (msg) {
       var parts = renderMessageItem(msg);
       DomRefs.chatContainer.appendChild(parts.msgDiv);
-      if (msg._isNew) {
-        delete msg._isNew;
-        editMessage(msg.id, parts.contentDiv, parts.actionsDiv, true);
-      }
     });
   });
 
