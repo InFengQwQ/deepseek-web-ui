@@ -1,25 +1,25 @@
-const BASE_URL = 'https://api.deepseek.com/beta/chat/completions';
+/* ================================================================
+   api.js — DeepSeek API interaction and streaming
+   ================================================================ */
 
-/* ---- API helper functions (moved from state.js) ---- */
+var BASE_URL = 'https://api.deepseek.com/beta/chat/completions';
+
+/* ---- API helper functions ---- */
 
 function buildSystemPromptMessage() {
-  const prompt = getSystemPrompt();
+  const prompt = state.config.systemPrompt;
   return typeof prompt === 'string' && prompt.trim() ? { role: 'system', content: prompt } : null;
 }
 
 function buildApiContextThroughIndex(endIndex) {
   if (endIndex < 0) return [];
-  return getMessages().slice(0, endIndex + 1).map(toApiMessage);
+  return state.messages.slice(0, endIndex + 1).map(toApiMessage);
 }
 
 function ensureCanStartGeneration(requireApiKey) {
   if (requireApiKey === undefined) requireApiKey = true;
-  if (getIsGenerating()) {
-    return false;
-  }
-  if (requireApiKey && !getApiKey()) {
-    return false;
-  }
+  if (state.isGenerating) return false;
+  if (requireApiKey && !state.config.apiKey) return false;
   return true;
 }
 
@@ -30,17 +30,17 @@ function buildRequestBody(messagesArray, useThinking, extra) {
   const systemMessage = buildSystemPromptMessage();
   const messages = systemMessage ? [systemMessage, ...messagesArray] : messagesArray;
   const body = {
-    model: getModel(),
+    model: state.config.model,
     messages,
     max_tokens: 4096,
     stream: true,
   };
   if (useThinking) {
     body.thinking = { type: 'enabled' };
-    body.reasoning_effort = getReasoningEffort();
+    body.reasoning_effort = state.config.reasoningEffort;
   } else {
     body.thinking = { type: 'disabled' };
-    body.temperature = getTemperature();
+    body.temperature = state.config.temperature;
   }
   Object.assign(body, extra);
   return body;
@@ -48,17 +48,16 @@ function buildRequestBody(messagesArray, useThinking, extra) {
 
 async function streamWithAbort(requestBody, contentCallback, reasoningCallback, onComplete, onError) {
   const controller = new AbortController();
-  setCurrentAbortController(controller);
+  state.currentAbortController = controller;
   setHidden(DomRefs.stopBtn, false);
-  setIsGenerating(true);
-  renderMessages();
+  state.isGenerating = true;
 
   try {
     const resp = await fetch(BASE_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${getApiKey()}`
+        'Authorization': `Bearer ${state.config.apiKey}`
       },
       body: JSON.stringify(requestBody),
       signal: controller.signal
@@ -106,74 +105,77 @@ async function streamWithAbort(requestBody, contentCallback, reasoningCallback, 
 }
 
 function cleanupGeneration() {
-  setIsGenerating(false);
-  setActiveGeneratingMessageId(null);
-  setCurrentAbortController(null);
+  const finishedMsgId = state.activeGeneratingMessageId;
+  state.isGenerating = false;
+  state.activeGeneratingMessageId = null;
+  state.currentAbortController = null;
   setHidden(DomRefs.stopBtn, true);
-  renderMessages();
+  // Incremental update only — avoid full renderMessages() re-render
+  if (finishedMsgId !== null) {
+    updateSingleMessageDOM(finishedMsgId);
+  }
 }
 
-async function runAssistantTask(requestBody, msgId, loadingText, doneText, options = {}) {
-  const isPrefix = !!options.isPrefix;
-  const originalContent = options.originalContent || '';
-  const versionIndex = Number.isInteger(options.versionIndex) ? options.versionIndex : null;
+/** Apply a chunk to a specific version of a message, sync if current, update DOM. */
+function withMessageVersion(msgId, versionIndex, updater) {
+  var msg = findMessageById(msgId);
+  if (!msg) return;
+  var targetVersion = versionIndex !== null ? getAssistantVersion(msg, versionIndex) : null;
+  if (!targetVersion) return;
+  updater(msg, targetVersion);
+  if (msg.currentVersionIndex === versionIndex) {
+    msg.content = targetVersion.content;
+    msg.reasoning_content = targetVersion.reasoning_content || null;
+  }
+  updateSingleMessageDOM(msgId);
+}
+
+async function runAssistantTask(requestBody, msgId, loadingText, doneText, options) {
+  if (options === undefined) options = {};
+  var isPrefix = !!options.isPrefix;
+  var originalContent = options.originalContent || '';
+  var versionIndex = Number.isInteger(options.versionIndex) ? options.versionIndex : null;
   setStatus(loadingText);
-  let fullContent = '';
+  var fullContent = '';
+
   await streamWithAbort(
     requestBody,
-    (chunk) => {
+    // content callback
+    function (chunk) {
       fullContent += chunk;
-      const msg = findMessageById(msgId);
-      if (msg) {
-        const targetVersion = versionIndex !== null ? getAssistantVersion(msg, versionIndex) : null;
-        if (targetVersion) {
-          targetVersion.content = isPrefix ? originalContent + fullContent : fullContent;
-          if (msg.currentVersionIndex === versionIndex) {
-            msg.content = targetVersion.content;
-            msg.reasoning_content = targetVersion.reasoning_content || null;
-          }
-        }
-        updateSingleMessageDOM(msgId);
-      }
+      withMessageVersion(msgId, versionIndex, function (_msg, ver) {
+        ver.content = isPrefix ? originalContent + fullContent : fullContent;
+      });
     },
-    isPrefix ? null : (chunk) => {
-      const msg = findMessageById(msgId);
-      if (msg) {
-        const targetVersion = versionIndex !== null ? getAssistantVersion(msg, versionIndex) : null;
-        if (targetVersion) {
-          targetVersion.reasoning_content = (targetVersion.reasoning_content || '') + chunk;
-          if (msg.currentVersionIndex === versionIndex) {
-            msg.reasoning_content = targetVersion.reasoning_content;
-          }
-        }
-        updateSingleMessageDOM(msgId);
-      }
+    // reasoning callback (skipped for prefix mode)
+    isPrefix ? null : function (chunk) {
+      withMessageVersion(msgId, versionIndex, function (_msg, ver) {
+        ver.reasoning_content = (ver.reasoning_content || '') + chunk;
+      });
     },
-    () => {
-      const msg = findMessageById(msgId);
-      if (msg) {
-        const targetVersion = versionIndex !== null ? getAssistantVersion(msg, versionIndex) : null;
-        if (targetVersion && !isPrefix && !fullContent) {
-          targetVersion.content = '[空响应]';
-          if (msg.currentVersionIndex === versionIndex) {
-            msg.content = targetVersion.content;
-          }
-        }
+    // onComplete
+    function () {
+      if (!isPrefix && !fullContent) {
+        withMessageVersion(msgId, versionIndex, function (_msg, ver) {
+          ver.content = '[空响应]';
+        });
       }
       persistMessages();
-      renderMessages();
+      updateSingleMessageDOM(msgId);
       setStatus(doneText);
     },
-    (err) => {
-      setStatus(`错误: ${err.message}`);
+    // onError
+    function (err) {
+      setStatus('错误: ' + err.message);
       persistMessages();
-      renderMessages();
+      updateSingleMessageDOM(msgId);
     }
   );
 }
 
-function startGeneration(requestBody, msgId, options = {}) {
-  setActiveGeneratingMessageId(msgId);
+function startGeneration(requestBody, msgId, options) {
+  if (options === undefined) options = {};
+  state.activeGeneratingMessageId = msgId;
   renderMessages();
   persistMessages();
   return runAssistantTask(requestBody, msgId, '生成中...', '生成完成', options);
@@ -184,11 +186,11 @@ async function generateNewResponse(afterMsgId) {
   const idx = findMessageIndexById(afterMsgId);
   if (idx === -1) return;
   const context = buildApiContextThroughIndex(idx);
-  const requestBody = buildRequestBody(context, getThinkingEnabled());
+  const requestBody = buildRequestBody(context, state.config.thinkingEnabled);
 
   const tempMessage = createMessage('assistant', '', { reasoning_content: '' });
-  setMessages([...getMessages().slice(0, idx + 1), tempMessage, ...getMessages().slice(idx + 1)]);
-  ensureAssistantVersion(tempMessage);
+  state.messages = [...state.messages.slice(0, idx + 1), tempMessage, ...state.messages.slice(idx + 1)];
+  applyCurrentVersion(tempMessage);
 
   await startGeneration(requestBody, tempMessage.id, { versionIndex: 0 });
 }
@@ -199,7 +201,7 @@ async function prefixCompletion(assistantId) {
   if (targetIdx === -1) return;
   const targetMsg = findMessageById(assistantId);
   if (!targetMsg || targetMsg.role !== 'assistant') return;
-  const historyBefore = getMessages().slice(0, targetIdx);
+  const historyBefore = state.messages.slice(0, targetIdx);
   const apiMessages = [
     ...historyBefore.map(toApiMessage),
     { role: 'assistant', content: targetMsg.content, prefix: true }
@@ -215,12 +217,14 @@ async function prefixCompletion(assistantId) {
 async function regenerateAssistant(assistantId) {
   if (!ensureCanStartGeneration(false)) return;
   const idx = findMessageIndexById(assistantId);
-  if (idx === -1 || getMessages()[idx].role !== 'assistant') return;
-  const historyBefore = getMessages().slice(0, idx);
-  const targetMsg = getMessages()[idx];
+  if (idx === -1 || state.messages[idx].role !== 'assistant') return;
+  const historyBefore = state.messages.slice(0, idx);
+  const targetMsg = state.messages[idx];
   const versionIndex = appendAssistantVersion(targetMsg, { content: '', reasoning_content: '' });
   if (versionIndex === null) return;
 
-  const requestBody = buildRequestBody(historyBefore.map(toApiMessage), getThinkingEnabled());
+  const requestBody = buildRequestBody(historyBefore.map(toApiMessage), state.config.thinkingEnabled);
   await startGeneration(requestBody, assistantId, { versionIndex });
 }
+
+

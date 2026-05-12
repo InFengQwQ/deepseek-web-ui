@@ -41,11 +41,11 @@
 }
 
 .msg-role.user {
-  color: var(--bg-accent-strong);
+  color: var(--color-heading);
 }
 
 .msg-role.assistant {
-  color: var(--bg-accent);
+  color: var(--color-accent);
 }
 
 .msg-time {
@@ -100,7 +100,7 @@
 .msg-content {
   font-size: 0.95rem;
   line-height: 1.6;
-  color: var(--bg-accent-strong);
+  color: var(--color-heading);
   margin: 0.5rem 0 0.6rem 0;
   word-break: break-word;
 }
@@ -115,41 +115,32 @@
   margin-bottom: 0;
 }
 
-.msg-content p,
-.reasoning-text p {
+/* === Shared prose styles for both content and reasoning blocks === */
+
+.prose-content p {
   margin: 0.55rem 0;
 }
 
-.msg-content h1,
-.msg-content h2,
-.msg-content h3,
-.msg-content h4,
-.msg-content h5,
-.msg-content h6,
-.reasoning-text h1,
-.reasoning-text h2,
-.reasoning-text h3,
-.reasoning-text h4,
-.reasoning-text h5,
-.reasoning-text h6 {
+.prose-content h1,
+.prose-content h2,
+.prose-content h3,
+.prose-content h4,
+.prose-content h5,
+.prose-content h6 {
   margin: 0.85rem 0 0.5rem;
   line-height: 1.35;
 }
 
-.msg-content ul,
-.msg-content ol,
-.reasoning-text ul,
-.reasoning-text ol {
+.prose-content ul,
+.prose-content ol {
   margin: 0.45rem 0 0.7rem 1.4rem;
 }
 
-.msg-content li,
-.reasoning-text li {
+.prose-content li {
   margin: 0.22rem 0;
 }
 
-.msg-content blockquote,
-.reasoning-text blockquote {
+.prose-content blockquote {
   border-left: 3px solid #cbd5e1;
   margin: 0.7rem 0;
   padding: 0.2rem 0 0.2rem 0.75rem;
@@ -157,8 +148,7 @@
   background: rgba(241, 245, 249, 0.6);
 }
 
-.msg-content code,
-.reasoning-text code {
+.prose-content code {
   font-family: 'SF Mono', 'Fira Code', monospace;
   background: #eef2f7;
   padding: 0.1rem 0.35rem;
@@ -166,8 +156,7 @@
   font-size: 0.86em;
 }
 
-.msg-content pre,
-.reasoning-text pre {
+.prose-content pre {
   background: var(--bg-accent-strong);
   color: #e2e8f0;
   border-radius: 0.5rem;
@@ -176,38 +165,32 @@
   overflow-x: auto;
 }
 
-.msg-content pre code,
-.reasoning-text pre code {
+.prose-content pre code {
   background: transparent;
   padding: 0;
   color: inherit;
 }
 
-.msg-content a,
-.reasoning-text a {
+.prose-content a {
   color: #1d4ed8;
   text-decoration: underline;
 }
 
-.msg-content table,
-.reasoning-text table {
+.prose-content table {
   border-collapse: collapse;
   margin: 0.7rem 0;
   width: 100%;
 }
 
-.msg-content th,
-.msg-content td,
-.reasoning-text th,
-.reasoning-text td {
+.prose-content th,
+.prose-content td {
   border: 1px solid #dbe3ee;
   padding: 0.35rem 0.5rem;
   text-align: left;
   overflow-wrap: anywhere;
 }
 
-.msg-content hr,
-.reasoning-text hr {
+.prose-content hr {
   border: 0;
   border-top: 1px solid #d9e2ef;
   margin: 0.85rem 0;
@@ -249,7 +232,7 @@
   display: inline-block;
   width: 0.5rem;
   height: 0.5rem;
-  background-color: var(--bg-accent);
+  background-color: var(--color-accent);
   border-radius: 50%;
   animation: typingPulse 0.8s infinite alternate;
 }
@@ -293,11 +276,6 @@
   border: none;
   border-radius: 0.5rem;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  box-shadow: var(--shadow-pop);
-  transition: background 0.2s, transform 0.1s;
   z-index: 100;
 }
 
@@ -513,37 +491,29 @@
 
 /* === KaTeX Math Rendering === */
 
-.msg-content .katex-display,
-.reasoning-text .katex-display {
+.prose-content .katex-display {
   overflow-x: auto;
   overflow-y: hidden;
   margin: 0.85rem 0;
   padding: 0.15rem 0;
 }
 
-.msg-content .katex,
-.reasoning-text .katex {
+.prose-content .katex {
   font-size: 1.05em;
   line-height: 1.2;
 }
 
-/* Inline math should not break across lines awkwardly */
-.msg-content .katex .katex-html,
-.reasoning-text .katex .katex-html {
+.prose-content .katex .katex-html {
   white-space: normal;
 }
 
-/* Ensure display-mode formulas have breathing room */
-.msg-content .katex-display > .katex,
-.reasoning-text .katex-display > .katex {
+.prose-content .katex-display > .katex {
   text-align: center;
   display: block;
   max-width: 100%;
 }
 
-/* Error fallback styling */
-.msg-content .katex .katex-error,
-.reasoning-text .katex .katex-error {
+.prose-content .katex .katex-error {
   color: #cc0000;
   font-style: italic;
 }

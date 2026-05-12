@@ -1,10 +1,5 @@
-let messages = [];
-let nextId = 1;
-let isGenerating = false;
-let activeGeneratingMessageId = null;
-let currentAbortController = null;
-
-const STORAGE_KEYS = {
+/* ---- Storage keys ---- */
+var STORAGE_KEYS = {
   apiKey: 'ds_api_key',
   model: 'ds_model',
   thinking: 'ds_thinking',
@@ -14,105 +9,57 @@ const STORAGE_KEYS = {
   messages: 'ds_chat_messages'
 };
 
-let apiKey = localStorage.getItem(STORAGE_KEYS.apiKey) || '';
-let model = localStorage.getItem(STORAGE_KEYS.model) || 'deepseek-v4-pro';
-let thinkingEnabled = localStorage.getItem(STORAGE_KEYS.thinking) === 'true';
-let reasoningEffort = localStorage.getItem(STORAGE_KEYS.reasoningEffort) || 'max';
-let temperature = parseFloat(localStorage.getItem(STORAGE_KEYS.temperature) || '0.7');
-let systemPrompt = localStorage.getItem(STORAGE_KEYS.systemPrompt) || '';
+/** Central application state — direct property access replaces all old getter/setter pairs. */
+var state = {
+  messages: [],
+  nextId: 1,
+  isGenerating: false,
+  activeGeneratingMessageId: null,
+  currentAbortController: null,
+  config: {
+    apiKey: localStorage.getItem(STORAGE_KEYS.apiKey) || '',
+    model: localStorage.getItem(STORAGE_KEYS.model) || 'deepseek-v4-pro',
+    thinkingEnabled: localStorage.getItem(STORAGE_KEYS.thinking) === 'true',
+    reasoningEffort: localStorage.getItem(STORAGE_KEYS.reasoningEffort) || 'max',
+    temperature: parseFloat(localStorage.getItem(STORAGE_KEYS.temperature) || '0.7'),
+    systemPrompt: localStorage.getItem(STORAGE_KEYS.systemPrompt) || ''
+  }
+};
 
-function getMessages() {
-  return messages;
+/* ---- Config persistence ---- */
+
+function persistConfig() {
+  var c = state.config;
+  localStorage.setItem(STORAGE_KEYS.apiKey, c.apiKey);
+  localStorage.setItem(STORAGE_KEYS.model, c.model);
+  localStorage.setItem(STORAGE_KEYS.thinking, c.thinkingEnabled);
+  localStorage.setItem(STORAGE_KEYS.reasoningEffort, c.reasoningEffort);
+  localStorage.setItem(STORAGE_KEYS.systemPrompt, c.systemPrompt);
+  localStorage.setItem(STORAGE_KEYS.temperature, c.temperature);
 }
 
-function setMessages(newMessages) {
-  messages = newMessages;
+/* ---- Message creation & helpers ---- */
+
+function serializeMessageRecord(msg) {
+  var record = {
+    role: msg.role,
+    content: msg.content,
+    reasoning_content: msg.reasoning_content || null,
+    createdAt: msg.createdAt
+  };
+  if (msg.role === 'assistant') {
+    if (Array.isArray(msg.versions)) record.versions = msg.versions.map(cloneVersionEntry);
+    if (Number.isInteger(msg.currentVersionIndex)) record.currentVersionIndex = msg.currentVersionIndex;
+  }
+  return record;
 }
 
-function resetNextId() {
-  nextId = 1;
-}
-
-function incrementNextId() {
-  return nextId++;
-}
-
-function getIsGenerating() {
-  return isGenerating;
-}
-
-function setIsGenerating(value) {
-  isGenerating = value;
-}
-
-function getActiveGeneratingMessageId() {
-  return activeGeneratingMessageId;
-}
-
-function setActiveGeneratingMessageId(id) {
-  activeGeneratingMessageId = id;
-}
-
-function getCurrentAbortController() {
-  return currentAbortController;
-}
-
-function setCurrentAbortController(controller) {
-  currentAbortController = controller;
-}
-
-function getApiKey() {
-  return apiKey;
-}
-
-function setApiKey(key) {
-  apiKey = key;
-}
-
-function getModel() {
-  return model;
-}
-
-function setModel(m) {
-  model = m;
-}
-
-function getThinkingEnabled() {
-  return thinkingEnabled;
-}
-
-function setThinkingEnabled(enabled) {
-  thinkingEnabled = enabled;
-}
-
-function getReasoningEffort() {
-  return reasoningEffort;
-}
-
-function setReasoningEffort(effort) {
-  reasoningEffort = effort;
-}
-
-function getTemperature() {
-  return temperature;
-}
-
-function setTemperature(temp) {
-  temperature = temp;
-}
-
-function getSystemPrompt() {
-  return systemPrompt;
-}
-
-function setSystemPrompt(prompt) {
-  systemPrompt = prompt;
-}
-
-function createMessage(role, content = '', options = {}) {
+function createMessage(role, content, options) {
+  if (content === undefined) content = '';
+  if (options === undefined) options = {};
   return {
-    id: Number.isFinite(options.id) ? options.id : nextId++,
-    role,
+    id: Number.isFinite(options.id) ? options.id : state.nextId++,
+    role: role,
     content: typeof content === 'string' ? content : '',
     reasoning_content: typeof options.reasoning_content === 'string' ? options.reasoning_content : null,
     createdAt: typeof options.createdAt === 'string' ? options.createdAt : new Date().toISOString(),
@@ -121,11 +68,11 @@ function createMessage(role, content = '', options = {}) {
 }
 
 function findMessageById(messageId) {
-  return messages.find(m => m.id === messageId) || null;
+  return state.messages.find(function (m) { return m.id === messageId; }) || null;
 }
 
 function findMessageIndexById(messageId) {
-  return messages.findIndex(m => m.id === messageId);
+  return state.messages.findIndex(function (m) { return m.id === messageId; });
 }
 
 function toApiMessage(msg) {
@@ -133,33 +80,49 @@ function toApiMessage(msg) {
 }
 
 function persistMessages() {
-  const toStore = messages.map(m => ({
-    id: m.id,
-    role: m.role,
-    content: m.content,
-    reasoning_content: m.reasoning_content || null,
-    createdAt: m.createdAt,
-    versions: m.role === 'assistant' && Array.isArray(m.versions) ? m.versions.map(cloneVersionEntry) : undefined,
-    currentVersionIndex: m.role === 'assistant' && Number.isInteger(m.currentVersionIndex) ? m.currentVersionIndex : undefined
-  }));
+  var toStore = state.messages.map(function (m) {
+    var record = serializeMessageRecord(m);
+    record.id = m.id;
+    return record;
+  });
   localStorage.setItem(STORAGE_KEYS.messages, JSON.stringify(toStore));
 }
 
 function loadMessagesFromStorage() {
-  const stored = localStorage.getItem(STORAGE_KEYS.messages);
+  var stored = localStorage.getItem(STORAGE_KEYS.messages);
   if (!stored) return;
-  const parsed = JSON.parse(stored);
-  const normalized = parsed.map(normalizeMessageRecord).filter(m => m && (m.role === 'user' || m.role === 'assistant'));
-  messages = normalized;
-  const maxId = messages.length > 0 ? Math.max(...messages.map(m => (Number.isFinite(m.id) ? m.id : 0))) : 0;
-  nextId = Math.max(1, maxId + 1);
+  var parsed = JSON.parse(stored);
+  var normalized = parsed.map(normalizeMessageRecord).filter(function (m) { return m && (m.role === 'user' || m.role === 'assistant'); });
+  state.messages = normalized;
+  var maxId = state.messages.length > 0 ? Math.max.apply(null, state.messages.map(function (m) { return Number.isFinite(m.id) ? m.id : 0; })) : 0;
+  state.nextId = Math.max(1, maxId + 1);
 }
 
 function formatMessageTime(createdAt) {
-  const date = createdAt ? new Date(createdAt) : new Date();
-  if (Number.isNaN(date.getTime())) return '--:--';
+  var date = createdAt ? new Date(createdAt) : new Date();
+  if (isNaN(date.getTime())) return '--:--';
   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
+
+function normalizeMessageRecord(msg) {
+  var normalized = {
+    id: msg.id,
+    role: msg.role,
+    content: typeof msg.content === 'string' ? msg.content : '',
+    reasoning_content: typeof msg.reasoning_content === 'string' ? msg.reasoning_content : null,
+    createdAt: typeof msg.createdAt === 'string' ? msg.createdAt : new Date().toISOString()
+  };
+  if (normalized.role === 'assistant') {
+    var rawVersions = Array.isArray(msg.versions) && msg.versions.length > 0 ? msg.versions : [normalized];
+    normalized.versions = rawVersions.map(cloneVersionEntry);
+    var candidateIndex = Number.isInteger(msg.currentVersionIndex) ? msg.currentVersionIndex : normalized.versions.length - 1;
+    normalized.currentVersionIndex = Math.min(Math.max(candidateIndex, 0), normalized.versions.length - 1);
+    applyCurrentVersion(normalized);
+  }
+  return normalized;
+}
+
+/* ---- Assistant version helpers ---- */
 
 function cloneVersionEntry(version) {
   return {
@@ -168,46 +131,8 @@ function cloneVersionEntry(version) {
   };
 }
 
-function syncAssistantMessageToCurrentVersion(msg) {
-  if (!msg || msg.role !== 'assistant' || !Array.isArray(msg.versions) || msg.versions.length === 0) return;
-  const index = Math.min(
-    Math.max(Number.isInteger(msg.currentVersionIndex) ? msg.currentVersionIndex : msg.versions.length - 1, 0),
-    msg.versions.length - 1
-  );
-  const currentVersion = msg.versions[index];
-  msg.currentVersionIndex = index;
-  msg.content = currentVersion.content || '';
-  msg.reasoning_content = currentVersion.reasoning_content || null;
-}
-
-function normalizeMessageRecord(msg) {
-  const normalized = {
-    id: msg.id,
-    role: msg.role,
-    content: typeof msg.content === 'string' ? msg.content : '',
-    reasoning_content: typeof msg.reasoning_content === 'string' ? msg.reasoning_content : null,
-    createdAt: typeof msg.createdAt === 'string' ? msg.createdAt : new Date().toISOString()
-  };
-
-  if (normalized.role === 'assistant') {
-    const rawVersions = Array.isArray(msg.versions) && msg.versions.length > 0 ? msg.versions : [normalized];
-    normalized.versions = rawVersions.map(cloneVersionEntry);
-    const candidateIndex = Number.isInteger(msg.currentVersionIndex) ? msg.currentVersionIndex : normalized.versions.length - 1;
-    normalized.currentVersionIndex = Math.min(Math.max(candidateIndex, 0), normalized.versions.length - 1);
-    syncAssistantMessageToCurrentVersion(normalized);
-  }
-
-  return normalized;
-}
-
-function getAssistantVersion(msg, versionIndex = msg?.currentVersionIndex) {
-  if (!msg || msg.role !== 'assistant' || !Array.isArray(msg.versions) || msg.versions.length === 0) return null;
-  const index = Number.isInteger(versionIndex) ? versionIndex : msg.currentVersionIndex;
-  if (index < 0 || index >= msg.versions.length) return null;
-  return msg.versions[index];
-}
-
-function ensureAssistantVersion(msg) {
+/** Ensure versions array exists, clamp index, sync msg.content/reasoning, return current version. */
+function applyCurrentVersion(msg) {
   if (!msg || msg.role !== 'assistant') return null;
   if (!Array.isArray(msg.versions) || msg.versions.length === 0) {
     msg.versions = [cloneVersionEntry(msg)];
@@ -215,24 +140,26 @@ function ensureAssistantVersion(msg) {
   if (!Number.isInteger(msg.currentVersionIndex)) {
     msg.currentVersionIndex = msg.versions.length - 1;
   }
-  syncAssistantMessageToCurrentVersion(msg);
-  return msg.versions[msg.currentVersionIndex];
+  msg.currentVersionIndex = Math.min(Math.max(msg.currentVersionIndex, 0), msg.versions.length - 1);
+  var v = msg.versions[msg.currentVersionIndex];
+  msg.content = v.content || '';
+  msg.reasoning_content = v.reasoning_content || null;
+  return v;
 }
 
-function appendAssistantVersion(msg, initialVersion = {}) {
+function getAssistantVersion(msg, versionIndex) {
+  if (!msg || msg.role !== 'assistant' || !Array.isArray(msg.versions) || msg.versions.length === 0) return null;
+  var index = Number.isInteger(versionIndex) ? versionIndex : msg.currentVersionIndex;
+  if (index < 0 || index >= msg.versions.length) return null;
+  return msg.versions[index];
+}
+
+/** Append a new empty version and switch to it. Returns the new index. */
+function appendAssistantVersion(msg, initialVersion) {
+  if (initialVersion === undefined) initialVersion = {};
   if (!msg || msg.role !== 'assistant') return null;
-  ensureAssistantVersion(msg);
+  applyCurrentVersion(msg);
   msg.versions.push(cloneVersionEntry(initialVersion));
   msg.currentVersionIndex = msg.versions.length - 1;
-  syncAssistantMessageToCurrentVersion(msg);
-  return msg.currentVersionIndex;
-}
-
-function setAssistantVersion(msg, versionIndex) {
-  if (!msg || msg.role !== 'assistant') return;
-  ensureAssistantVersion(msg);
-  msg.currentVersionIndex = Math.min(Math.max(versionIndex, 0), msg.versions.length - 1);
-  syncAssistantMessageToCurrentVersion(msg);
-  persistMessages();
-  renderMessages();
+  return applyCurrentVersion(msg) ? msg.currentVersionIndex : null;
 }

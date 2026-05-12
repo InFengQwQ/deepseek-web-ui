@@ -3,6 +3,8 @@
   --bg-panel: #ffffff;
   --bg-subtle: #f8fafc;
   --bg-muted: #f1f4f9;
+  --color-accent: #4f46e5;
+  --color-heading: #0f172a;
   --bg-accent: #4f46e5;
   --bg-accent-strong: #0f172a;
   --text-primary: #1e293b;
@@ -188,19 +190,7 @@ body {
   flex: none;
 }
 
-.icon-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
-  background: transparent;
-  border: none;
-  padding: 0.2rem;
-  color: var(--text-muted);
-  border-radius: 0.3rem;
-  box-shadow: none;
-}
-
+.icon-btn,
 .action-icon-btn {
   display: inline-flex;
   align-items: center;

@@ -1,6 +1,5 @@
 /* ================================================================
    render.js — DOM rendering and message display
-   Depends on: dom.js, utils.js, state.js, api.js (for actions)
    ================================================================ */
 
 /* ---- Scroll helpers ---- */
@@ -30,12 +29,12 @@ function evaluateScrollToBottom() {
 
 /* ---- Action icon button factory ---- */
 
-function mkActionIconBtn(title, iconSvg, handler, disableDuringGen) {
+function createActionIconBtn(title, iconSvg, handler, disableDuringGen) {
   var btn = document.createElement('button');
   btn.className = 'action-icon-btn';
   btn.title = title;
   btn.innerHTML = iconSvg;
-  if (disableDuringGen && getIsGenerating()) btn.disabled = true;
+  if (disableDuringGen && state.isGenerating) btn.disabled = true;
   btn.onclick = handler;
   return btn;
 }
@@ -60,7 +59,7 @@ function renderEmptyState() {
   document.getElementById('emptySendBtn').onclick = function () {
     var input = document.getElementById('emptyInput');
     var content = input.value;
-    setMessages(getMessages().concat([createMessage('user', content)]));
+    state.messages = state.messages.concat([createMessage('user', content)]);
     renderMessages();
     persistMessages();
   };
@@ -126,47 +125,29 @@ function renderVersionNav(msg) {
 }
 
 function renderReasoningBlock(msg) {
-  var reasoningDiv = document.createElement('div');
-  reasoningDiv.className = 'reasoning-block';
-
-  var hdr = createReasoningHeader(false);
-  var contentReason = document.createElement('div');
-  contentReason.className = 'reasoning-text';
-  contentReason.innerHTML = renderMarkdownToHTML(msg.reasoning_content);
-
-  var collapsed = false;
-  hdr.header.onclick = function () {
-    collapsed = !collapsed;
-    setHidden(contentReason, collapsed);
-    hdr.state.innerText = collapsed ? '(已折叠)' : '(点击折叠)';
-  };
-
-  reasoningDiv.appendChild(hdr.header);
-  reasoningDiv.appendChild(contentReason);
-
-  return reasoningDiv;
+  return createReasoningBlockDOM(msg.reasoning_content);
 }
 
 function renderMessageActions(msg, contentDiv) {
   var actionsDiv = document.createElement('div');
   actionsDiv.className = 'msg-actions';
 
-  actionsDiv.appendChild(mkActionIconBtn('插入', ICONS.insert, function () { insertUserMessageAfter(msg.id); }, false));
-  actionsDiv.appendChild(mkActionIconBtn('编辑', ICONS.edit, function () { editMessage(msg.id, contentDiv, actionsDiv); }, false));
-  actionsDiv.appendChild(mkActionIconBtn('删除', ICONS.delete, function () { deleteMessage(msg.id); }, false));
+  actionsDiv.appendChild(createActionIconBtn('插入', ICONS.insert, function () { insertUserMessageAfter(msg.id); }, false));
+  actionsDiv.appendChild(createActionIconBtn('编辑', ICONS.edit, function () { editMessage(msg.id, contentDiv, actionsDiv); }, false));
+  actionsDiv.appendChild(createActionIconBtn('删除', ICONS.delete, function () { deleteMessage(msg.id); }, false));
 
   var sep1 = document.createElement('span');
   sep1.className = 'action-sep';
   actionsDiv.appendChild(sep1);
 
-  actionsDiv.appendChild(mkActionIconBtn('生成响应', ICONS.generate, function () { generateNewResponse(msg.id); }, true));
+  actionsDiv.appendChild(createActionIconBtn('生成响应', ICONS.generate, function () { generateNewResponse(msg.id); }, true));
 
   if (msg.role === 'assistant') {
     var sep2 = document.createElement('span');
     sep2.className = 'action-sep';
     actionsDiv.appendChild(sep2);
-    actionsDiv.appendChild(mkActionIconBtn('前缀续写', ICONS.prefix, function () { prefixCompletion(msg.id); }, true));
-    actionsDiv.appendChild(mkActionIconBtn('重新生成', ICONS.regenerate, function () { regenerateAssistant(msg.id); }, true));
+    actionsDiv.appendChild(createActionIconBtn('前缀续写', ICONS.prefix, function () { prefixCompletion(msg.id); }, true));
+    actionsDiv.appendChild(createActionIconBtn('重新生成', ICONS.regenerate, function () { regenerateAssistant(msg.id); }, true));
   }
 
   return actionsDiv;
@@ -185,10 +166,10 @@ function renderMessageItem(msg) {
   }
 
   var contentDiv = document.createElement('div');
-  contentDiv.className = 'msg-content';
+  contentDiv.className = 'msg-content prose-content';
 
   var shouldShowTyping =
-    msg.id === getActiveGeneratingMessageId() &&
+    msg.id === state.activeGeneratingMessageId &&
     !(msg.content && msg.content.length > 0) &&
     !(msg.reasoning_content && msg.reasoning_content.length > 0);
 
@@ -201,7 +182,7 @@ function renderMessageItem(msg) {
   msgDiv.appendChild(contentDiv);
 
   var actionsDiv = renderMessageActions(msg, contentDiv);
-  setHidden(actionsDiv, msg.id === getActiveGeneratingMessageId());
+  setHidden(actionsDiv, msg.id === state.activeGeneratingMessageId);
   msgDiv.appendChild(actionsDiv);
 
   return { msgDiv: msgDiv, contentDiv: contentDiv, actionsDiv: actionsDiv };
@@ -212,14 +193,14 @@ function renderMessageItem(msg) {
 function renderMessages() {
   if (!DomRefs.chatContainer) return;
 
-  if (getMessages().length === 0) {
+  if (state.messages.length === 0) {
     renderEmptyState();
     return;
   }
 
   preserveScrollPosition(DomRefs.chatContainer, function () {
     DomRefs.chatContainer.innerHTML = '';
-    getMessages().forEach(function (msg) {
+    state.messages.forEach(function (msg) {
       var parts = renderMessageItem(msg);
       DomRefs.chatContainer.appendChild(parts.msgDiv);
       if (msg._isNew) {
@@ -238,145 +219,47 @@ function updateSingleMessageDOM(msgId) {
   var msg = findMessageById(msgId);
   if (!msg || !DomRefs.chatContainer) return;
 
+  // Need findMessageById from state — import it
   var msgDiv = DomRefs.chatContainer.querySelector('.message-item[data-id="' + msgId + '"]');
   if (!msgDiv) {
     renderMessages();
     return;
   }
 
-  var c = DomRefs.chatContainer;
-  var isAtBottom = c.scrollHeight - c.scrollTop - c.clientHeight < 50;
-  var previousScrollTop = c.scrollTop;
-
-  if (msg.role === 'assistant' && msg.reasoning_content && msg.reasoning_content.trim()) {
-    var reasoningDiv = msgDiv.querySelector('.reasoning-block');
-    if (!reasoningDiv) {
-      reasoningDiv = document.createElement('div');
-      reasoningDiv.className = 'reasoning-block';
-
-      var hdr = createReasoningHeader(false);
-      var contentReason = document.createElement('div');
-      contentReason.className = 'reasoning-text';
-
-      var collapsed = false;
-      hdr.header.onclick = function () {
-        collapsed = !collapsed;
-        setHidden(contentReason, collapsed);
-        hdr.state.innerText = collapsed ? '(已折叠)' : '(点击折叠)';
-      };
-
-      reasoningDiv.appendChild(hdr.header);
-      reasoningDiv.appendChild(contentReason);
-
-      var contentDiv = msgDiv.querySelector('.msg-content');
-      msgDiv.insertBefore(reasoningDiv, contentDiv);
+  preserveScrollPosition(DomRefs.chatContainer, function () {
+    if (msg.role === 'assistant' && msg.reasoning_content && msg.reasoning_content.trim()) {
+      var reasoningDiv = msgDiv.querySelector('.reasoning-block');
+      if (!reasoningDiv) {
+        reasoningDiv = createReasoningBlockDOM(msg.reasoning_content);
+        var existingContent = msgDiv.querySelector('.msg-content');
+        msgDiv.insertBefore(reasoningDiv, existingContent);
+      } else {
+        var textDiv = reasoningDiv.querySelector('.reasoning-text');
+        if (textDiv) textDiv.innerHTML = renderMarkdownToHTML(msg.reasoning_content);
+      }
     }
-    var textDiv = reasoningDiv.querySelector('.reasoning-text');
-    if (textDiv) textDiv.innerHTML = renderMarkdownToHTML(msg.reasoning_content);
-  }
 
-  var contentDiv = msgDiv.querySelector('.msg-content');
-  if (contentDiv && !contentDiv.querySelector('textarea')) {
-    var shouldShowTyping =
-      msg.id === getActiveGeneratingMessageId() &&
-      !(msg.content && msg.content.length > 0) &&
-      !(msg.reasoning_content && msg.reasoning_content.length > 0);
-    if (shouldShowTyping) {
-      contentDiv.innerHTML = '<span class="typing-indicator"></span>';
-    } else {
-      contentDiv.innerHTML = renderMarkdownToHTML(msg.content);
+    var contentDiv = msgDiv.querySelector('.msg-content');
+    if (contentDiv && !contentDiv.querySelector('textarea')) {
+      var shouldShowTyping =
+        msg.id === state.activeGeneratingMessageId &&
+        !(msg.content && msg.content.length > 0) &&
+        !(msg.reasoning_content && msg.reasoning_content.length > 0);
+      if (shouldShowTyping) {
+        contentDiv.innerHTML = '<span class="typing-indicator"></span>';
+      } else {
+        contentDiv.innerHTML = renderMarkdownToHTML(msg.content);
+      }
     }
-  }
 
-  var actionsDiv = msgDiv.querySelector('.msg-actions');
-  if (actionsDiv) {
-    setHidden(actionsDiv, msg.id === getActiveGeneratingMessageId());
-  }
+    var actionsDiv = msgDiv.querySelector('.msg-actions');
+    if (actionsDiv) {
+      setHidden(actionsDiv, msg.id === state.activeGeneratingMessageId);
+    }
+  });
 
-  if (isAtBottom) {
-    c.scrollTop = c.scrollHeight;
-  } else {
-    c.scrollTop = previousScrollTop;
-  }
   evaluateScrollToBottom();
 }
 
-/* ---- Message CRUD (trigger re-renders) ---- */
 
-function insertUserMessageAfter(afterMsgId) {
-  var idx = findMessageIndexById(afterMsgId);
-  if (idx === -1) return;
-  var newMsg = createMessage('user', '', { isNew: true });
-  var newMessages = getMessages().slice();
-  newMessages.splice(idx + 1, 0, newMsg);
-  setMessages(newMessages);
-  renderMessages();
-  persistMessages();
-}
 
-function editMessage(msgId, contentDiv, actionsDiv, isNew) {
-  var msg = findMessageById(msgId);
-  if (!msg) return;
-  if (contentDiv.querySelector('textarea')) return;
-
-  var textarea = document.createElement('textarea');
-  textarea.className = 'compact-textarea message-edit-textarea';
-  textarea.value = msg.content;
-
-  var saveBtn = document.createElement('button');
-  saveBtn.className = 'small primary message-edit-save';
-  saveBtn.innerText = '保存';
-
-  var cancelBtn = document.createElement('button');
-  cancelBtn.className = 'small';
-  cancelBtn.innerText = '取消';
-
-  var editActions = document.createElement('div');
-  editActions.className = 'message-edit-actions';
-  editActions.appendChild(saveBtn);
-  editActions.appendChild(cancelBtn);
-
-  contentDiv.innerHTML = '';
-  contentDiv.appendChild(textarea);
-  contentDiv.appendChild(editActions);
-
-  autoResizeTextarea(textarea);
-
-  if (actionsDiv) actionsDiv.style.opacity = '0';
-  textarea.focus();
-
-  saveBtn.onclick = function () {
-    var newContent = textarea.value;
-    if (msg.role === 'assistant') {
-      var version = ensureAssistantVersion(msg);
-      if (version) {
-        version.content = newContent;
-        version.reasoning_content = msg.reasoning_content || null;
-        syncAssistantMessageToCurrentVersion(msg);
-      }
-    } else {
-      msg.content = newContent;
-    }
-    persistMessages();
-    setStatus(isNew ? '消息已插入' : '消息已修改', 1500);
-    renderMessages();
-  };
-
-  cancelBtn.onclick = function () {
-    if (isNew) {
-      deleteMessage(msg.id);
-    } else {
-      renderMessages();
-    }
-  };
-}
-
-function deleteMessage(msgId) {
-  var idx = findMessageIndexById(msgId);
-  if (idx !== -1) {
-    setMessages(getMessages().slice(0, idx).concat(getMessages().slice(idx + 1)));
-    renderMessages();
-    persistMessages();
-    setStatus('消息已删除');
-  }
-}

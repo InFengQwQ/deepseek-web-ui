@@ -1,11 +1,6 @@
 /* ================================================================
    actions.js — UI event handling, modals, import/export
-   Depends on: dom.js, utils.js, state.js, api.js, render.js
    ================================================================ */
-
-function initActions() {
-  bindEvents();
-}
 
 /* ---- System prompt modal ---- */
 
@@ -18,7 +13,7 @@ function scrollSystemPromptToBottom() {
 
 function openSystemPromptModal() {
   if (!DomRefs.systemPromptModal || !DomRefs.systemPromptInput) return;
-  DomRefs.systemPromptInput.value = getSystemPrompt();
+  DomRefs.systemPromptInput.value = state.config.systemPrompt;
   setHidden(DomRefs.systemPromptModal, false);
   DomRefs.systemPromptModal.setAttribute('aria-hidden', 'false');
   DomRefs.systemPromptInput.focus();
@@ -29,18 +24,6 @@ function closeSystemPromptModal() {
   if (!DomRefs.systemPromptModal) return;
   setHidden(DomRefs.systemPromptModal, true);
   DomRefs.systemPromptModal.setAttribute('aria-hidden', 'true');
-}
-
-/* ---- Status bar ---- */
-
-function setStatus(text, resetAfterMs) {
-  if (resetAfterMs === undefined) resetAfterMs = 0;
-  DomRefs.statusSpan.innerText = text;
-  if (resetAfterMs > 0) {
-    setTimeout(function () {
-      if (DomRefs.statusSpan.innerText === text) DomRefs.statusSpan.innerText = '就绪';
-    }, resetAfterMs);
-  }
 }
 
 /* ---- Thinking / temperature UI toggle ---- */
@@ -55,30 +38,25 @@ function updateThinkingUI() {
 /* ---- Config sync & save ---- */
 
 function syncConfigToUI() {
-  DomRefs.apiKeyInput.value = getApiKey();
-  DomRefs.modelSelect.value = getModel();
-  DomRefs.thinkingToggle.checked = getThinkingEnabled();
-  DomRefs.effortSelect.value = getReasoningEffort();
-  DomRefs.tempInput.value = getTemperature();
-  DomRefs.systemPromptInput.value = getSystemPrompt();
+  DomRefs.apiKeyInput.value = state.config.apiKey;
+  DomRefs.modelSelect.value = state.config.model;
+  DomRefs.thinkingToggle.checked = state.config.thinkingEnabled;
+  DomRefs.effortSelect.value = state.config.reasoningEffort;
+  DomRefs.tempInput.value = state.config.temperature;
+  DomRefs.systemPromptInput.value = state.config.systemPrompt;
   scrollSystemPromptToBottom();
   updateThinkingUI();
 }
 
 function saveConfiguration() {
-  setApiKey(DomRefs.apiKeyInput.value.trim());
-  setModel(DomRefs.modelSelect.value);
-  setThinkingEnabled(DomRefs.thinkingToggle.checked);
-  setReasoningEffort(DomRefs.effortSelect.value);
-  setSystemPrompt(DomRefs.systemPromptInput.value);
+  state.config.apiKey = DomRefs.apiKeyInput.value.trim();
+  state.config.model = DomRefs.modelSelect.value;
+  state.config.thinkingEnabled = DomRefs.thinkingToggle.checked;
+  state.config.reasoningEffort = DomRefs.effortSelect.value;
+  state.config.systemPrompt = DomRefs.systemPromptInput.value;
   var newTemp = parseFloat(DomRefs.tempInput.value);
-  if (!isNaN(newTemp)) setTemperature(newTemp);
-  localStorage.setItem(STORAGE_KEYS.apiKey, getApiKey());
-  localStorage.setItem(STORAGE_KEYS.model, getModel());
-  localStorage.setItem(STORAGE_KEYS.thinking, getThinkingEnabled());
-  localStorage.setItem(STORAGE_KEYS.reasoningEffort, getReasoningEffort());
-  localStorage.setItem(STORAGE_KEYS.systemPrompt, getSystemPrompt());
-  localStorage.setItem(STORAGE_KEYS.temperature, getTemperature());
+  if (!isNaN(newTemp)) state.config.temperature = newTemp;
+  persistConfig();
   closeSystemPromptModal();
   setStatus('配置已保存', 1500);
 }
@@ -86,12 +64,12 @@ function saveConfiguration() {
 /* ---- Stop generation ---- */
 
 function stopGeneration() {
-  if (getCurrentAbortController()) {
-    getCurrentAbortController().abort();
-    setCurrentAbortController(null);
+  if (state.currentAbortController) {
+    state.currentAbortController.abort();
+    state.currentAbortController = null;
   }
-  setIsGenerating(false);
-  setActiveGeneratingMessageId(null);
+  state.isGenerating = false;
+  state.activeGeneratingMessageId = null;
   setHidden(DomRefs.stopBtn, true);
   setStatus('生成已停止');
   renderMessages();
@@ -101,8 +79,8 @@ function stopGeneration() {
 
 function clearAllMessages() {
   if (confirm('清空对话？')) {
-    setMessages([]);
-    resetNextId();
+    state.messages = [];
+    state.nextId = 1;
     renderMessages();
     persistMessages();
     setStatus('对话已清空');
@@ -112,16 +90,7 @@ function clearAllMessages() {
 /* ---- Export / Import ---- */
 
 function exportConversation() {
-  var data = getMessages().map(function (m) {
-    return {
-      role: m.role,
-      content: m.content,
-      reasoning_content: m.reasoning_content || null,
-      createdAt: m.createdAt,
-      versions: m.role === 'assistant' && Array.isArray(m.versions) ? m.versions.map(cloneVersionEntry) : undefined,
-      currentVersionIndex: m.role === 'assistant' && Number.isInteger(m.currentVersionIndex) ? m.currentVersionIndex : undefined
-    };
-  });
+  var data = state.messages.map(serializeMessageRecord);
   var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   var url = URL.createObjectURL(blob);
   var a = document.createElement('a');
@@ -141,7 +110,7 @@ function importConversation(file) {
       if (!Array.isArray(msgs)) throw new Error('无效格式');
       var newMsgs = msgs.map(function (msg) {
         return normalizeMessageRecord({
-          id: incrementNextId(),
+          id: state.nextId++,
           role: msg.role,
           content: msg.content,
           reasoning_content: msg.reasoning_content || null,
@@ -151,15 +120,105 @@ function importConversation(file) {
         });
       });
       if (newMsgs.length === 0) throw new Error('无有效消息');
-      setMessages(newMsgs);
+      state.messages = newMsgs;
       renderMessages();
       persistMessages();
-      setStatus('已导入 ' + getMessages().length + ' 条消息', 2000);
+      setStatus('已导入 ' + state.messages.length + ' 条消息', 2000);
     } catch (err) {
       setStatus('导入失败: ' + err.message);
     }
   };
   reader.readAsText(file);
+}
+
+/* ---- Message CRUD ---- */
+
+function insertUserMessageAfter(afterMsgId) {
+  var idx = findMessageIndexById(afterMsgId);
+  if (idx === -1) return;
+  var newMsg = createMessage('user', '', { isNew: true });
+  var newMessages = state.messages.slice();
+  newMessages.splice(idx + 1, 0, newMsg);
+  state.messages = newMessages;
+  renderMessages();
+  persistMessages();
+}
+
+function editMessage(msgId, contentDiv, actionsDiv, isNew) {
+  var msg = findMessageById(msgId);
+  if (!msg) return;
+  if (contentDiv.querySelector('textarea')) return;
+
+  var textarea = document.createElement('textarea');
+  textarea.className = 'compact-textarea message-edit-textarea';
+  textarea.value = msg.content;
+
+  var saveBtn = document.createElement('button');
+  saveBtn.className = 'small primary message-edit-save';
+  saveBtn.innerText = '保存';
+
+  var cancelBtn = document.createElement('button');
+  cancelBtn.className = 'small';
+  cancelBtn.innerText = '取消';
+
+  var editActions = document.createElement('div');
+  editActions.className = 'message-edit-actions';
+  editActions.appendChild(saveBtn);
+  editActions.appendChild(cancelBtn);
+
+  contentDiv.innerHTML = '';
+  contentDiv.appendChild(textarea);
+  contentDiv.appendChild(editActions);
+
+  autoResizeTextarea(textarea);
+
+  if (actionsDiv) actionsDiv.style.opacity = '0';
+  textarea.focus();
+
+  saveBtn.onclick = function () {
+    var newContent = textarea.value;
+    if (msg.role === 'assistant') {
+      var version = applyCurrentVersion(msg);
+      if (version) {
+        version.content = newContent;
+        version.reasoning_content = msg.reasoning_content || null;
+        applyCurrentVersion(msg);
+      }
+    } else {
+      msg.content = newContent;
+    }
+    persistMessages();
+    setStatus(isNew ? '消息已插入' : '消息已修改', 1500);
+    renderMessages();
+  };
+
+  cancelBtn.onclick = function () {
+    if (isNew) {
+      deleteMessage(msg.id);
+    } else {
+      renderMessages();
+    }
+  };
+}
+
+function deleteMessage(msgId) {
+  var idx = findMessageIndexById(msgId);
+  if (idx !== -1) {
+    state.messages = state.messages.slice(0, idx).concat(state.messages.slice(idx + 1));
+    renderMessages();
+    persistMessages();
+    setStatus('消息已删除');
+  }
+}
+
+/* ---- Assistant version navigation (moved from state.js) ---- */
+
+function setAssistantVersion(msg, versionIndex) {
+  if (!msg || msg.role !== 'assistant') return;
+  msg.currentVersionIndex = versionIndex;
+  applyCurrentVersion(msg);
+  persistMessages();
+  renderMessages();
 }
 
 /* ---- Event binding ---- */
@@ -185,8 +244,33 @@ function bindEvents() {
     input.click();
   };
   DomRefs.stopBtn.onclick = stopGeneration;
-  DomRefs.chatContainer.addEventListener('scroll', evaluateScrollToBottom);
+  var scrollTicking = false;
+  DomRefs.chatContainer.addEventListener('scroll', function () {
+    if (!scrollTicking) {
+      requestAnimationFrame(function () {
+        evaluateScrollToBottom();
+        scrollTicking = false;
+      });
+      scrollTicking = true;
+    }
+  });
   DomRefs.scrollToBottomBtn.onclick = function () {
     DomRefs.chatContainer.scrollTop = DomRefs.chatContainer.scrollHeight;
   };
 }
+
+function initActions() {
+  bindEvents();
+}
+
+/** Bootstrap the application: init DOM, load state, wire events, render. */
+function bootstrapApp() {
+  initDomRefs();
+  loadMessagesFromStorage();
+  initActions();
+  syncConfigToUI();
+  renderMessages();
+}
+
+// Auto-bootstrap when DOM is ready (script loads with defer)
+bootstrapApp();
