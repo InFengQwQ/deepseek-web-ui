@@ -5,7 +5,7 @@
 /* ---- Scroll helpers ---- */
 
 function preserveScrollPosition(container, fn) {
-  var isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 50;
+  var isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < CONST.SCROLL_BOTTOM_THRESHOLD;
   var previousScrollTop = container.scrollTop;
   fn();
   if (isAtBottom) {
@@ -20,7 +20,7 @@ function evaluateScrollToBottom() {
   var b = DomRefs.scrollToBottomBtn;
   if (!c || !b) return;
   var distanceFromBottom = c.scrollHeight - c.scrollTop - c.clientHeight;
-  if (distanceFromBottom > 100) {
+  if (distanceFromBottom > CONST.SCROLL_BTN_THRESHOLD) {
     b.classList.remove('hidden');
   } else {
     b.classList.add('hidden');
@@ -40,6 +40,47 @@ function createActionIconBtn(title, iconSvg, handler, disableDuringGen) {
 }
 
 /* ---- Sub-renderers ---- */
+
+/** Create a collapsible reasoning header element. */
+function createReasoningHeader(initialCollapsed) {
+  var header = document.createElement('div');
+  header.className = 'reasoning-header';
+
+  var title = document.createElement('span');
+  title.innerText = '思考过程';
+
+  var stateSpan = document.createElement('span');
+  stateSpan.className = 'reasoning-header-state';
+  stateSpan.innerText = initialCollapsed ? '(已折叠)' : '(点击折叠)';
+
+  header.appendChild(title);
+  header.appendChild(document.createTextNode(' '));
+  header.appendChild(stateSpan);
+
+  return { header: header, stateSpan: stateSpan };
+}
+
+/** Create a complete reasoning block DOM element (collapsible). */
+function createReasoningBlockDOM(reasoningContent) {
+  var reasoningDiv = document.createElement('div');
+  reasoningDiv.className = 'reasoning-block';
+
+  var hdr = createReasoningHeader(false);
+  var contentDiv = document.createElement('div');
+  contentDiv.className = 'reasoning-text prose-content';
+  contentDiv.innerHTML = renderMarkdownToHTML(reasoningContent);
+
+  var collapsed = false;
+  hdr.header.onclick = function () {
+    collapsed = !collapsed;
+    setHidden(contentDiv, collapsed);
+    hdr.stateSpan.innerText = collapsed ? '(已折叠)' : '(点击折叠)';
+  };
+
+  reasoningDiv.appendChild(hdr.header);
+  reasoningDiv.appendChild(contentDiv);
+  return reasoningDiv;
+}
 
 function renderEmptyState() {
   DomRefs.chatContainer.innerHTML =
@@ -65,7 +106,7 @@ function renderEmptyState() {
   };
 
   var emptyInput = document.getElementById('emptyInput');
-  autoResizeTextarea(emptyInput, { minHeight: 36, maxHeight: 168, clampOverflow: true });
+  autoResizeTextarea(emptyInput, { minHeight: CONST.TEXTAREA_MIN_HEIGHT, maxHeight: CONST.TEXTAREA_MAX_HEIGHT, clampOverflow: true });
 }
 
 function renderMessageMeta(msg) {
@@ -254,6 +295,21 @@ function updateSingleMessageDOM(msgId) {
     }
   });
 
+  evaluateScrollToBottom();
+}
+
+/** Replace a single message's DOM element with a fresh render from state. */
+function refreshMessageDOM(msgId) {
+  var msg = findMessageById(msgId);
+  if (!msg) return;
+  var oldDiv = DomRefs.chatContainer.querySelector('.message-item[data-id="' + msgId + '"]');
+  if (!oldDiv) {
+    if (state.messages.length === 0) renderEmptyState();
+    else renderMessages();
+    return;
+  }
+  var parts = renderMessageItem(msg);
+  oldDiv.parentNode.replaceChild(parts.msgDiv, oldDiv);
   evaluateScrollToBottom();
 }
 

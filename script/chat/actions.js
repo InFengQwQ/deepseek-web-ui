@@ -1,69 +1,11 @@
 /* ================================================================
-   actions.js — UI event handling, modals, import/export
+   actions.js — Chat actions: generation, message CRUD, import/export
    ================================================================ */
-
-/* ---- System prompt modal ---- */
-
-function scrollSystemPromptToBottom() {
-  if (!DomRefs.systemPromptInput) return;
-  requestAnimationFrame(function () {
-    DomRefs.systemPromptInput.scrollTop = DomRefs.systemPromptInput.scrollHeight;
-  });
-}
-
-function openSystemPromptModal() {
-  if (!DomRefs.systemPromptModal || !DomRefs.systemPromptInput) return;
-  DomRefs.systemPromptInput.value = state.config.systemPrompt;
-  setHidden(DomRefs.systemPromptModal, false);
-  DomRefs.systemPromptModal.setAttribute('aria-hidden', 'false');
-  DomRefs.systemPromptInput.focus();
-  scrollSystemPromptToBottom();
-}
-
-function closeSystemPromptModal() {
-  if (!DomRefs.systemPromptModal) return;
-  setHidden(DomRefs.systemPromptModal, true);
-  DomRefs.systemPromptModal.setAttribute('aria-hidden', 'true');
-}
-
-/* ---- Thinking / temperature UI toggle ---- */
-
-function updateThinkingUI() {
-  if (!DomRefs.thinkingToggle) return;
-  var enabled = DomRefs.thinkingToggle.checked;
-  setHidden(DomRefs.effortField, !enabled);
-  setHidden(DomRefs.tempField, enabled);
-}
-
-/* ---- Config sync & save ---- */
-
-function syncConfigToUI() {
-  DomRefs.apiKeyInput.value = state.config.apiKey;
-  DomRefs.modelSelect.value = state.config.model;
-  DomRefs.thinkingToggle.checked = state.config.thinkingEnabled;
-  DomRefs.effortSelect.value = state.config.reasoningEffort;
-  DomRefs.tempInput.value = state.config.temperature;
-  DomRefs.systemPromptInput.value = state.config.systemPrompt;
-  scrollSystemPromptToBottom();
-  updateThinkingUI();
-}
-
-function saveConfiguration() {
-  state.config.apiKey = DomRefs.apiKeyInput.value.trim();
-  state.config.model = DomRefs.modelSelect.value;
-  state.config.thinkingEnabled = DomRefs.thinkingToggle.checked;
-  state.config.reasoningEffort = DomRefs.effortSelect.value;
-  state.config.systemPrompt = DomRefs.systemPromptInput.value;
-  var newTemp = parseFloat(DomRefs.tempInput.value);
-  if (!isNaN(newTemp)) state.config.temperature = newTemp;
-  persistConfig();
-  closeSystemPromptModal();
-  setStatus('配置已保存', 1500);
-}
 
 /* ---- Stop generation ---- */
 
 function stopGeneration() {
+  var msgId = state.activeGeneratingMessageId;
   if (state.currentAbortController) {
     state.currentAbortController.abort();
     state.currentAbortController = null;
@@ -72,7 +14,7 @@ function stopGeneration() {
   state.activeGeneratingMessageId = null;
   setHidden(DomRefs.stopBtn, true);
   setStatus('生成已停止');
-  renderMessages();
+  if (msgId != null) updateSingleMessageDOM(msgId);
 }
 
 /* ---- Generation actions ---- */
@@ -146,7 +88,7 @@ function exportConversation() {
   a.download = 'deepseek_chat_' + new Date().toISOString().slice(0, 19) + '.json';
   a.click();
   URL.revokeObjectURL(url);
-  setStatus('对话已导出', 1500);
+  setStatus('对话已导出', CONST.STATUS_TIMEOUT_SHORT);
 }
 
 function importConversation(file) {
@@ -171,7 +113,7 @@ function importConversation(file) {
       state.messages = newMsgs;
       renderMessages();
       persistMessages();
-      setStatus('已导入 ' + state.messages.length + ' 条消息', 2000);
+      setStatus('已导入 ' + state.messages.length + ' 条消息', CONST.STATUS_TIMEOUT_LONG);
     } catch (err) {
       setStatus('导入失败: ' + err.message);
     }
@@ -200,7 +142,14 @@ function insertUserMessageAfter(afterMsgId) {
   var newMessages = state.messages.slice();
   newMessages.splice(idx + 1, 0, newMsg);
   state.messages = newMessages;
-  renderMessages();
+
+  var afterDiv = DomRefs.chatContainer.querySelector('.message-item[data-id="' + afterMsgId + '"]');
+  if (afterDiv) {
+    var parts = renderMessageItem(newMsg);
+    afterDiv.parentNode.insertBefore(parts.msgDiv, afterDiv.nextSibling);
+  } else {
+    renderMessages();
+  }
   enterEditModeForNewMessages();
   persistMessages();
 }
@@ -249,15 +198,15 @@ function editMessage(msgId, contentDiv, actionsDiv, isNew) {
       msg.content = newContent;
     }
     persistMessages();
-    setStatus(isNew ? '消息已插入' : '消息已修改', 1500);
-    renderMessages();
+    setStatus(isNew ? '消息已插入' : '消息已修改', CONST.STATUS_TIMEOUT_SHORT);
+    refreshMessageDOM(msg.id);
   };
 
   cancelBtn.onclick = function () {
     if (isNew) {
       deleteMessage(msg.id);
     } else {
-      renderMessages();
+      refreshMessageDOM(msg.id);
     }
   };
 }
@@ -266,7 +215,9 @@ function deleteMessage(msgId) {
   var idx = findMessageIndexById(msgId);
   if (idx !== -1) {
     state.messages = state.messages.slice(0, idx).concat(state.messages.slice(idx + 1));
-    renderMessages();
+    var msgDiv = DomRefs.chatContainer.querySelector('.message-item[data-id="' + msgId + '"]');
+    if (msgDiv) msgDiv.remove();
+    if (state.messages.length === 0) renderEmptyState();
     persistMessages();
     setStatus('消息已删除');
   }
@@ -279,22 +230,12 @@ function setAssistantVersion(msg, versionIndex) {
   msg.currentVersionIndex = versionIndex;
   applyCurrentVersion(msg);
   persistMessages();
-  renderMessages();
+  refreshMessageDOM(msg.id);
 }
 
 /* ---- Event binding ---- */
 
 function bindEvents() {
-  DomRefs.thinkingToggle.addEventListener('change', updateThinkingUI);
-  DomRefs.systemPromptInput.addEventListener('input', scrollSystemPromptToBottom);
-  DomRefs.systemPromptBtn.onclick = openSystemPromptModal;
-  DomRefs.systemPromptCloseBtn.onclick = closeSystemPromptModal;
-  document.addEventListener('keydown', function (event) {
-    if (event.key === 'Escape' && !DomRefs.systemPromptModal.classList.contains('is-hidden')) {
-      closeSystemPromptModal();
-    }
-  });
-  DomRefs.saveBtn.onclick = saveConfiguration;
   DomRefs.clearBtn.onclick = clearAllMessages;
   DomRefs.exportBtn.onclick = exportConversation;
   DomRefs.importBtn.onclick = function () {
@@ -321,5 +262,6 @@ function bindEvents() {
 }
 
 function initActions() {
+  initConfig();
   bindEvents();
 }

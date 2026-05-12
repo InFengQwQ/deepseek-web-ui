@@ -9,6 +9,21 @@ var STORAGE_KEYS = {
   messages: 'ds_chat_messages'
 };
 
+/** Shared application constants — single source of truth for magic numbers/strings. */
+var CONST = {
+  STATUS_IDLE: '就绪',
+  STATUS_GENERATING: '生成中...',
+  STATUS_DONE: '生成完成',
+  STATUS_TIMEOUT_SHORT: 1500,
+  STATUS_TIMEOUT_LONG: 2000,
+  API_MAX_TOKENS: 4096,
+  API_DEFAULT_TEMP: 0.7,
+  SCROLL_BOTTOM_THRESHOLD: 50,
+  SCROLL_BTN_THRESHOLD: 100,
+  TEXTAREA_MAX_HEIGHT: 168,
+  TEXTAREA_MIN_HEIGHT: 36
+};
+
 /** Central application state — direct property access replaces all old getter/setter pairs. */
 var state = {
   messages: [],
@@ -21,7 +36,7 @@ var state = {
     model: localStorage.getItem(STORAGE_KEYS.model) || 'deepseek-v4-pro',
     thinkingEnabled: localStorage.getItem(STORAGE_KEYS.thinking) === 'true',
     reasoningEffort: localStorage.getItem(STORAGE_KEYS.reasoningEffort) || 'max',
-    temperature: parseFloat(localStorage.getItem(STORAGE_KEYS.temperature) || '0.7'),
+    temperature: parseFloat(localStorage.getItem(STORAGE_KEYS.temperature) || String(CONST.API_DEFAULT_TEMP)),
     systemPrompt: localStorage.getItem(STORAGE_KEYS.systemPrompt) || ''
   }
 };

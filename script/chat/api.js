@@ -32,7 +32,7 @@ function buildRequestBody(messagesArray, useThinking, extra) {
   const body = {
     model: state.config.model,
     messages,
-    max_tokens: 4096,
+    max_tokens: CONST.API_MAX_TOKENS,
     stream: true,
   };
   if (useThinking) {
@@ -46,11 +46,10 @@ function buildRequestBody(messagesArray, useThinking, extra) {
   return body;
 }
 
-async function streamWithAbort(requestBody, contentCallback, reasoningCallback, onComplete, onError) {
+/** Pure fetch + SSE streaming. No DOM or UI state side effects. */
+async function streamWithAbort(requestBody, contentCallback, reasoningCallback) {
   const controller = new AbortController();
   state.currentAbortController = controller;
-  setHidden(DomRefs.stopBtn, false);
-  state.isGenerating = true;
 
   try {
     const resp = await fetch(BASE_URL, {
@@ -92,28 +91,20 @@ async function streamWithAbort(requestBody, contentCallback, reasoningCallback, 
         }
       }
     }
-    onComplete();
   } catch (err) {
     if (err.name === 'AbortError') {
-      onError(new Error('用户中止'));
-    } else {
-      onError(err);
+      throw new Error('用户中止');
     }
-  } finally {
-    cleanupGeneration();
+    throw err;
   }
 }
 
+/** Reset generation state and hide stop button. Pure state cleanup — no DOM update. */
 function cleanupGeneration() {
-  const finishedMsgId = state.activeGeneratingMessageId;
   state.isGenerating = false;
   state.activeGeneratingMessageId = null;
   state.currentAbortController = null;
   setHidden(DomRefs.stopBtn, true);
-  // Incremental update only — avoid full renderMessages() re-render
-  if (finishedMsgId !== null) {
-    updateSingleMessageDOM(finishedMsgId);
-  }
 }
 
 /** Apply a chunk to a specific version of a message, sync if current, update DOM. */
@@ -130,55 +121,59 @@ function withMessageVersion(msgId, versionIndex, updater) {
   updateSingleMessageDOM(msgId);
 }
 
+/** Orchestrate a streaming generation task: UI setup → stream → finalize. */
 async function runAssistantTask(requestBody, msgId, loadingText, doneText, options) {
   if (options === undefined) options = {};
   var isPrefix = !!options.isPrefix;
   var originalContent = options.originalContent || '';
   var versionIndex = Number.isInteger(options.versionIndex) ? options.versionIndex : null;
+
+  state.isGenerating = true;
+  setHidden(DomRefs.stopBtn, false);
   setStatus(loadingText);
   var fullContent = '';
 
-  await streamWithAbort(
-    requestBody,
-    // content callback
-    function (chunk) {
-      fullContent += chunk;
-      withMessageVersion(msgId, versionIndex, function (_msg, ver) {
-        ver.content = isPrefix ? originalContent + fullContent : fullContent;
-      });
-    },
-    // reasoning callback (skipped for prefix mode)
-    isPrefix ? null : function (chunk) {
-      withMessageVersion(msgId, versionIndex, function (_msg, ver) {
-        ver.reasoning_content = (ver.reasoning_content || '') + chunk;
-      });
-    },
-    // onComplete
-    function () {
-      if (!isPrefix && !fullContent) {
+  try {
+    await streamWithAbort(
+      requestBody,
+      // content callback
+      function (chunk) {
+        fullContent += chunk;
         withMessageVersion(msgId, versionIndex, function (_msg, ver) {
-          ver.content = '[空响应]';
+          ver.content = isPrefix ? originalContent + fullContent : fullContent;
+        });
+      },
+      // reasoning callback (skipped for prefix mode)
+      isPrefix ? null : function (chunk) {
+        withMessageVersion(msgId, versionIndex, function (_msg, ver) {
+          ver.reasoning_content = (ver.reasoning_content || '') + chunk;
         });
       }
-      persistMessages();
-      updateSingleMessageDOM(msgId);
-      setStatus(doneText);
-    },
-    // onError
-    function (err) {
-      setStatus('错误: ' + err.message);
-      persistMessages();
-      updateSingleMessageDOM(msgId);
+    );
+    // onComplete
+    if (!isPrefix && !fullContent) {
+      withMessageVersion(msgId, versionIndex, function (_msg, ver) {
+        ver.content = '[空响应]';
+      });
     }
-  );
+    persistMessages();
+    updateSingleMessageDOM(msgId);
+    setStatus(doneText);
+  } catch (err) {
+    setStatus('错误: ' + err.message);
+    persistMessages();
+    updateSingleMessageDOM(msgId);
+  } finally {
+    cleanupGeneration();
+  }
 }
 
 function startGeneration(requestBody, msgId, options) {
   if (options === undefined) options = {};
   state.activeGeneratingMessageId = msgId;
-  renderMessages();
+  refreshMessageDOM(msgId);
   persistMessages();
-  return runAssistantTask(requestBody, msgId, '生成中...', '生成完成', options);
+  return runAssistantTask(requestBody, msgId, CONST.STATUS_GENERATING, CONST.STATUS_DONE, options);
 }
 
 
