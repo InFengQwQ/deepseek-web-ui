@@ -511,3 +511,40 @@
   }
 }
 
+/* === KaTeX Math Rendering === */
+
+.msg-content .katex-display,
+.reasoning-text .katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  margin: 0.85rem 0;
+  padding: 0.15rem 0;
+}
+
+.msg-content .katex,
+.reasoning-text .katex {
+  font-size: 1.05em;
+  line-height: 1.2;
+}
+
+/* Inline math should not break across lines awkwardly */
+.msg-content .katex .katex-html,
+.reasoning-text .katex .katex-html {
+  white-space: normal;
+}
+
+/* Ensure display-mode formulas have breathing room */
+.msg-content .katex-display > .katex,
+.reasoning-text .katex-display > .katex {
+  text-align: center;
+  display: block;
+  max-width: 100%;
+}
+
+/* Error fallback styling */
+.msg-content .katex .katex-error,
+.reasoning-text .katex .katex-error {
+  color: #cc0000;
+  font-style: italic;
+}
+

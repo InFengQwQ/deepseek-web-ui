@@ -1,103 +1,77 @@
-let apiKeyInput = null;
-let modelSelect = null;
-let thinkingToggle = null;
-let effortSelect = null;
-let tempInput = null;
-let systemPromptInput = null;
-let systemPromptBtn = null;
-let systemPromptModal = null;
-let systemPromptCloseBtn = null;
-let effortField = null;
-let tempField = null;
-let saveBtn = null;
-let clearBtn = null;
-let exportBtn = null;
-let importBtn = null;
+/* ================================================================
+   actions.js — UI event handling, modals, import/export
+   Depends on: dom.js, utils.js, state.js, api.js, render.js
+   ================================================================ */
 
 function initActions() {
-  apiKeyInput = DomRefs.apiKeyInput;
-  modelSelect = DomRefs.modelSelect;
-  thinkingToggle = DomRefs.thinkingToggle;
-  effortSelect = DomRefs.effortSelect;
-  tempInput = DomRefs.tempInput;
-  systemPromptInput = DomRefs.systemPromptInput;
-  systemPromptBtn = DomRefs.systemPromptBtn;
-  systemPromptModal = DomRefs.systemPromptModal;
-  systemPromptCloseBtn = DomRefs.systemPromptCloseBtn;
-  effortField = DomRefs.effortField;
-  tempField = DomRefs.tempField;
-  saveBtn = DomRefs.saveBtn;
-  clearBtn = DomRefs.clearBtn;
-  exportBtn = DomRefs.exportBtn;
-  importBtn = DomRefs.importBtn;
-  statusSpan = DomRefs.statusSpan;
-  stopBtn = DomRefs.stopBtn;
-  scrollToBottomBtn = DomRefs.scrollToBottomBtn;
-
   bindEvents();
 }
 
-function setHidden(element, hidden) {
-  if (!element) return;
-  element.classList.toggle('is-hidden', hidden);
-}
+/* ---- System prompt modal ---- */
 
 function scrollSystemPromptToBottom() {
-  if (!systemPromptInput) return;
-  requestAnimationFrame(() => {
-    systemPromptInput.scrollTop = systemPromptInput.scrollHeight;
+  if (!DomRefs.systemPromptInput) return;
+  requestAnimationFrame(function () {
+    DomRefs.systemPromptInput.scrollTop = DomRefs.systemPromptInput.scrollHeight;
   });
 }
 
 function openSystemPromptModal() {
-  if (!systemPromptModal || !systemPromptInput) return;
-  systemPromptInput.value = getSystemPrompt();
-  setHidden(systemPromptModal, false);
-  systemPromptModal.setAttribute('aria-hidden', 'false');
-  systemPromptInput.focus();
+  if (!DomRefs.systemPromptModal || !DomRefs.systemPromptInput) return;
+  DomRefs.systemPromptInput.value = getSystemPrompt();
+  setHidden(DomRefs.systemPromptModal, false);
+  DomRefs.systemPromptModal.setAttribute('aria-hidden', 'false');
+  DomRefs.systemPromptInput.focus();
   scrollSystemPromptToBottom();
 }
 
 function closeSystemPromptModal() {
-  if (!systemPromptModal) return;
-  setHidden(systemPromptModal, true);
-  systemPromptModal.setAttribute('aria-hidden', 'true');
+  if (!DomRefs.systemPromptModal) return;
+  setHidden(DomRefs.systemPromptModal, true);
+  DomRefs.systemPromptModal.setAttribute('aria-hidden', 'true');
 }
 
-function setStatus(text, resetAfterMs = 0) {
-  statusSpan.innerText = text;
+/* ---- Status bar ---- */
+
+function setStatus(text, resetAfterMs) {
+  if (resetAfterMs === undefined) resetAfterMs = 0;
+  DomRefs.statusSpan.innerText = text;
   if (resetAfterMs > 0) {
-    setTimeout(() => {
-      if (statusSpan.innerText === text) statusSpan.innerText = '就绪';
+    setTimeout(function () {
+      if (DomRefs.statusSpan.innerText === text) DomRefs.statusSpan.innerText = '就绪';
     }, resetAfterMs);
   }
 }
 
+/* ---- Thinking / temperature UI toggle ---- */
+
 function updateThinkingUI() {
-  if (!thinkingToggle) return;
-  const enabled = thinkingToggle.checked;
-  setHidden(effortField, !enabled);
-  setHidden(tempField, enabled);
+  if (!DomRefs.thinkingToggle) return;
+  var enabled = DomRefs.thinkingToggle.checked;
+  setHidden(DomRefs.effortField, !enabled);
+  setHidden(DomRefs.tempField, enabled);
 }
 
+/* ---- Config sync & save ---- */
+
 function syncConfigToUI() {
-  apiKeyInput.value = getApiKey();
-  modelSelect.value = getModel();
-  thinkingToggle.checked = getThinkingEnabled();
-  effortSelect.value = getReasoningEffort();
-  tempInput.value = getTemperature();
-  systemPromptInput.value = getSystemPrompt();
+  DomRefs.apiKeyInput.value = getApiKey();
+  DomRefs.modelSelect.value = getModel();
+  DomRefs.thinkingToggle.checked = getThinkingEnabled();
+  DomRefs.effortSelect.value = getReasoningEffort();
+  DomRefs.tempInput.value = getTemperature();
+  DomRefs.systemPromptInput.value = getSystemPrompt();
   scrollSystemPromptToBottom();
   updateThinkingUI();
 }
 
 function saveConfiguration() {
-  setApiKey(apiKeyInput.value.trim());
-  setModel(modelSelect.value);
-  setThinkingEnabled(thinkingToggle.checked);
-  setReasoningEffort(effortSelect.value);
-  setSystemPrompt(systemPromptInput.value);
-  const newTemp = parseFloat(tempInput.value);
+  setApiKey(DomRefs.apiKeyInput.value.trim());
+  setModel(DomRefs.modelSelect.value);
+  setThinkingEnabled(DomRefs.thinkingToggle.checked);
+  setReasoningEffort(DomRefs.effortSelect.value);
+  setSystemPrompt(DomRefs.systemPromptInput.value);
+  var newTemp = parseFloat(DomRefs.tempInput.value);
   if (!isNaN(newTemp)) setTemperature(newTemp);
   localStorage.setItem(STORAGE_KEYS.apiKey, getApiKey());
   localStorage.setItem(STORAGE_KEYS.model, getModel());
@@ -109,6 +83,8 @@ function saveConfiguration() {
   setStatus('配置已保存', 1500);
 }
 
+/* ---- Stop generation ---- */
+
 function stopGeneration() {
   if (getCurrentAbortController()) {
     getCurrentAbortController().abort();
@@ -116,10 +92,12 @@ function stopGeneration() {
   }
   setIsGenerating(false);
   setActiveGeneratingMessageId(null);
-  setHidden(stopBtn, true);
+  setHidden(DomRefs.stopBtn, true);
   setStatus('生成已停止');
   renderMessages();
 }
+
+/* ---- Clear all messages ---- */
 
 function clearAllMessages() {
   if (confirm('清空对话？')) {
@@ -131,76 +109,84 @@ function clearAllMessages() {
   }
 }
 
+/* ---- Export / Import ---- */
+
 function exportConversation() {
-  const data = getMessages().map(m => ({
-    role: m.role,
-    content: m.content,
-    reasoning_content: m.reasoning_content || null,
-    createdAt: m.createdAt,
-    versions: m.role === 'assistant' && Array.isArray(m.versions) ? m.versions.map(cloneVersionEntry) : undefined,
-    currentVersionIndex: m.role === 'assistant' && Number.isInteger(m.currentVersionIndex) ? m.currentVersionIndex : undefined
-  }));
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
+  var data = getMessages().map(function (m) {
+    return {
+      role: m.role,
+      content: m.content,
+      reasoning_content: m.reasoning_content || null,
+      createdAt: m.createdAt,
+      versions: m.role === 'assistant' && Array.isArray(m.versions) ? m.versions.map(cloneVersionEntry) : undefined,
+      currentVersionIndex: m.role === 'assistant' && Number.isInteger(m.currentVersionIndex) ? m.currentVersionIndex : undefined
+    };
+  });
+  var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
   a.href = url;
-  a.download = `deepseek_chat_${new Date().toISOString().slice(0,19)}.json`;
+  a.download = 'deepseek_chat_' + new Date().toISOString().slice(0, 19) + '.json';
   a.click();
   URL.revokeObjectURL(url);
   setStatus('对话已导出', 1500);
 }
 
 function importConversation(file) {
-  const reader = new FileReader();
-  reader.onload = (e) => {
+  var reader = new FileReader();
+  reader.onload = function (e) {
     try {
-      const imported = JSON.parse(e.target.result);
-      let msgs = imported.messages || imported;
+      var imported = JSON.parse(e.target.result);
+      var msgs = imported.messages || imported;
       if (!Array.isArray(msgs)) throw new Error('无效格式');
-      const newMsgs = msgs.map(msg => normalizeMessageRecord({
-        id: incrementNextId(),
-        role: msg.role,
-        content: msg.content,
-        reasoning_content: msg.reasoning_content || null,
-        createdAt: msg.createdAt,
-        versions: msg.versions,
-        currentVersionIndex: msg.currentVersionIndex
-      }));
+      var newMsgs = msgs.map(function (msg) {
+        return normalizeMessageRecord({
+          id: incrementNextId(),
+          role: msg.role,
+          content: msg.content,
+          reasoning_content: msg.reasoning_content || null,
+          createdAt: msg.createdAt,
+          versions: msg.versions,
+          currentVersionIndex: msg.currentVersionIndex
+        });
+      });
       if (newMsgs.length === 0) throw new Error('无有效消息');
       setMessages(newMsgs);
       renderMessages();
       persistMessages();
-      setStatus(`已导入 ${getMessages().length} 条消息`, 2000);
+      setStatus('已导入 ' + getMessages().length + ' 条消息', 2000);
     } catch (err) {
-      setStatus(`导入失败: ${err.message}`);
+      setStatus('导入失败: ' + err.message);
     }
   };
   reader.readAsText(file);
 }
 
+/* ---- Event binding ---- */
+
 function bindEvents() {
-  thinkingToggle.addEventListener('change', updateThinkingUI);
-  systemPromptInput.addEventListener('input', scrollSystemPromptToBottom);
-  systemPromptBtn.onclick = openSystemPromptModal;
-  systemPromptCloseBtn.onclick = closeSystemPromptModal;
-  document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape' && !systemPromptModal.classList.contains('is-hidden')) {
+  DomRefs.thinkingToggle.addEventListener('change', updateThinkingUI);
+  DomRefs.systemPromptInput.addEventListener('input', scrollSystemPromptToBottom);
+  DomRefs.systemPromptBtn.onclick = openSystemPromptModal;
+  DomRefs.systemPromptCloseBtn.onclick = closeSystemPromptModal;
+  document.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape' && !DomRefs.systemPromptModal.classList.contains('is-hidden')) {
       closeSystemPromptModal();
     }
   });
-  saveBtn.onclick = saveConfiguration;
-  clearBtn.onclick = clearAllMessages;
-  exportBtn.onclick = exportConversation;
-  importBtn.onclick = () => {
-    const input = document.createElement('input');
+  DomRefs.saveBtn.onclick = saveConfiguration;
+  DomRefs.clearBtn.onclick = clearAllMessages;
+  DomRefs.exportBtn.onclick = exportConversation;
+  DomRefs.importBtn.onclick = function () {
+    var input = document.createElement('input');
     input.type = 'file';
     input.accept = '.json';
-    input.onchange = (e) => { if (e.target.files[0]) importConversation(e.target.files[0]); };
+    input.onchange = function (e) { if (e.target.files[0]) importConversation(e.target.files[0]); };
     input.click();
   };
-  stopBtn.onclick = stopGeneration;
-  chatContainer.addEventListener('scroll', evaluateScrollToBottom);
-  scrollToBottomBtn.onclick = () => {
-    chatContainer.scrollTop = chatContainer.scrollHeight;
+  DomRefs.stopBtn.onclick = stopGeneration;
+  DomRefs.chatContainer.addEventListener('scroll', evaluateScrollToBottom);
+  DomRefs.scrollToBottomBtn.onclick = function () {
+    DomRefs.chatContainer.scrollTop = DomRefs.chatContainer.scrollHeight;
   };
 }

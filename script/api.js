@@ -1,6 +1,32 @@
 const BASE_URL = 'https://api.deepseek.com/beta/chat/completions';
 
-function buildRequestBody(messagesArray, useThinking, extra = {}) {
+/* ---- API helper functions (moved from state.js) ---- */
+
+function buildSystemPromptMessage() {
+  const prompt = getSystemPrompt();
+  return typeof prompt === 'string' && prompt.trim() ? { role: 'system', content: prompt } : null;
+}
+
+function buildApiContextThroughIndex(endIndex) {
+  if (endIndex < 0) return [];
+  return getMessages().slice(0, endIndex + 1).map(toApiMessage);
+}
+
+function ensureCanStartGeneration(requireApiKey) {
+  if (requireApiKey === undefined) requireApiKey = true;
+  if (getIsGenerating()) {
+    return false;
+  }
+  if (requireApiKey && !getApiKey()) {
+    return false;
+  }
+  return true;
+}
+
+/* ---- API request builders ---- */
+
+function buildRequestBody(messagesArray, useThinking, extra) {
+  if (extra === undefined) extra = {};
   const systemMessage = buildSystemPromptMessage();
   const messages = systemMessage ? [systemMessage, ...messagesArray] : messagesArray;
   const body = {
@@ -23,7 +49,7 @@ function buildRequestBody(messagesArray, useThinking, extra = {}) {
 async function streamWithAbort(requestBody, contentCallback, reasoningCallback, onComplete, onError) {
   const controller = new AbortController();
   setCurrentAbortController(controller);
-  setHidden(stopBtn, false);
+  setHidden(DomRefs.stopBtn, false);
   setIsGenerating(true);
   renderMessages();
 
@@ -83,7 +109,7 @@ function cleanupGeneration() {
   setIsGenerating(false);
   setActiveGeneratingMessageId(null);
   setCurrentAbortController(null);
-  setHidden(stopBtn, true);
+  setHidden(DomRefs.stopBtn, true);
   renderMessages();
 }
 
