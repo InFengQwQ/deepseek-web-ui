@@ -110,6 +110,6 @@ function renderMarkdownToHTML(text) {
     // Step 4: Restore math + code, then sanitize
     return restorePlaceholders(html, codeResult.placeholders, mathResult.placeholders);
   } catch (e) {
-    return '<p style="color:#b91c1c">[渲染错误] ' + escapeHtml(String(e.message || e)) + '</p>';
+    return '<p style="color:#b91c1c">' + CONST.ERR_RENDER_FALLBACK + escapeHtml(String(e.message || e)) + '</p>';
   }
 }

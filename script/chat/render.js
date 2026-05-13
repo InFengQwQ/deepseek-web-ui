@@ -21,9 +21,9 @@ function evaluateScrollToBottom() {
   if (!c || !b) return;
   var distanceFromBottom = c.scrollHeight - c.scrollTop - c.clientHeight;
   if (distanceFromBottom > CONST.SCROLL_BTN_THRESHOLD) {
-    b.classList.remove('hidden');
+    b.classList.remove('is-invisible');
   } else {
-    b.classList.add('hidden');
+    b.classList.add('is-invisible');
   }
 }
 
@@ -39,6 +39,37 @@ function createActionIconBtn(title, iconSvg, handler, disableDuringGen) {
   return btn;
 }
 
+/** Build inline-edit UI (textarea + save/cancel) inside a message content div. */
+function createEditModeUI(msg, contentDiv, actionsDiv) {
+  var textarea = document.createElement('textarea');
+  textarea.className = 'compact-textarea message-edit-textarea';
+  textarea.value = msg.content;
+
+  var saveBtn = document.createElement('button');
+  saveBtn.className = 'small primary message-edit-save';
+  saveBtn.innerText = CONST.UI_BTN_SAVE;
+
+  var cancelBtn = document.createElement('button');
+  cancelBtn.className = 'small';
+  cancelBtn.innerText = CONST.UI_BTN_CANCEL;
+
+  var editActions = document.createElement('div');
+  editActions.className = 'message-edit-actions';
+  editActions.appendChild(saveBtn);
+  editActions.appendChild(cancelBtn);
+
+  contentDiv.innerHTML = '';
+  contentDiv.appendChild(textarea);
+  contentDiv.appendChild(editActions);
+
+  autoResizeTextarea(textarea);
+
+  if (actionsDiv) actionsDiv.style.opacity = '0';
+  textarea.focus();
+
+  return { textarea: textarea, saveBtn: saveBtn, cancelBtn: cancelBtn };
+}
+
 /* ---- Sub-renderers ---- */
 
 /** Create a collapsible reasoning header element. */
@@ -47,11 +78,11 @@ function createReasoningHeader(initialCollapsed) {
   header.className = 'reasoning-header';
 
   var title = document.createElement('span');
-  title.innerText = '思考过程';
+  title.innerText = CONST.UI_REASONING_TITLE;
 
   var stateSpan = document.createElement('span');
   stateSpan.className = 'reasoning-header-state';
-  stateSpan.innerText = initialCollapsed ? '(已折叠)' : '(点击折叠)';
+  stateSpan.innerText = initialCollapsed ? CONST.UI_REASONING_COLLAPSED : CONST.UI_REASONING_EXPANDED;
 
   header.appendChild(title);
   header.appendChild(document.createTextNode(' '));
@@ -74,7 +105,7 @@ function createReasoningBlockDOM(reasoningContent) {
   hdr.header.onclick = function () {
     collapsed = !collapsed;
     setHidden(contentDiv, collapsed);
-    hdr.stateSpan.innerText = collapsed ? '(已折叠)' : '(点击折叠)';
+    hdr.stateSpan.innerText = collapsed ? CONST.UI_REASONING_COLLAPSED : CONST.UI_REASONING_EXPANDED;
   };
 
   reasoningDiv.appendChild(hdr.header);
@@ -85,15 +116,15 @@ function createReasoningBlockDOM(reasoningContent) {
 function renderEmptyState() {
   DomRefs.chatContainer.innerHTML =
     '<div class="empty-state">' +
-      '<div class="empty-state-title">开始新对话</div>' +
+      '<div class="empty-state-title">' + CONST.UI_EMPTY_TITLE + '</div>' +
       '<div class="empty-input-row">' +
         '<div class="empty-input-spacer" aria-hidden="true"></div>' +
         '<div class="empty-input-wrapper">' +
           '<div class="empty-input-shell">' +
-            '<textarea id="emptyInput" placeholder="输入用户消息…" rows="1" autofocus></textarea>' +
+            '<textarea id="emptyInput" placeholder="' + CONST.UI_EMPTY_PLACEHOLDER + '" rows="1" autofocus></textarea>' +
           '</div>' +
         '</div>' +
-        '<button id="emptySendBtn" class="primary">发送</button>' +
+        '<button id="emptySendBtn" class="primary">' + CONST.UI_BTN_SEND + '</button>' +
       '</div>' +
     '</div>';
 
@@ -115,7 +146,7 @@ function renderMessageMeta(msg) {
 
   var roleSpan = document.createElement('span');
   roleSpan.className = 'msg-role ' + msg.role;
-  roleSpan.innerText = msg.role === 'user' ? '用户' : 'DeepSeek';
+  roleSpan.innerText = msg.role === 'user' ? CONST.UI_ROLE_USER : CONST.UI_ROLE_ASSISTANT;
 
   var timeSpan = document.createElement('span');
   timeSpan.className = 'msg-time';
@@ -173,22 +204,22 @@ function renderMessageActions(msg, contentDiv) {
   var actionsDiv = document.createElement('div');
   actionsDiv.className = 'msg-actions';
 
-  actionsDiv.appendChild(createActionIconBtn('插入', ICONS.insert, function () { insertUserMessageAfter(msg.id); }, false));
-  actionsDiv.appendChild(createActionIconBtn('编辑', ICONS.edit, function () { editMessage(msg.id, contentDiv, actionsDiv); }, false));
-  actionsDiv.appendChild(createActionIconBtn('删除', ICONS.delete, function () { deleteMessage(msg.id); }, false));
+  actionsDiv.appendChild(createActionIconBtn(CONST.UI_ACTION_INSERT, ICONS.insert, function () { insertUserMessageAfter(msg.id); }, false));
+  actionsDiv.appendChild(createActionIconBtn(CONST.UI_ACTION_EDIT, ICONS.edit, function () { editMessage(msg.id, contentDiv, actionsDiv); }, false));
+  actionsDiv.appendChild(createActionIconBtn(CONST.UI_ACTION_DELETE, ICONS.delete, function () { deleteMessage(msg.id); }, false));
 
   var sep1 = document.createElement('span');
   sep1.className = 'action-sep';
   actionsDiv.appendChild(sep1);
 
-  actionsDiv.appendChild(createActionIconBtn('生成响应', ICONS.generate, function () { generateNewResponse(msg.id); }, true));
+  actionsDiv.appendChild(createActionIconBtn(CONST.UI_ACTION_GENERATE, ICONS.generate, function () { generateNewResponse(msg.id); }, true));
 
   if (msg.role === 'assistant') {
     var sep2 = document.createElement('span');
     sep2.className = 'action-sep';
     actionsDiv.appendChild(sep2);
-    actionsDiv.appendChild(createActionIconBtn('前缀续写', ICONS.prefix, function () { prefixCompletion(msg.id); }, true));
-    actionsDiv.appendChild(createActionIconBtn('重新生成', ICONS.regenerate, function () { regenerateAssistant(msg.id); }, true));
+    actionsDiv.appendChild(createActionIconBtn(CONST.UI_ACTION_PREFIX, ICONS.prefix, function () { prefixCompletion(msg.id); }, true));
+    actionsDiv.appendChild(createActionIconBtn(CONST.UI_ACTION_REGENERATE, ICONS.regenerate, function () { regenerateAssistant(msg.id); }, true));
   }
 
   return actionsDiv;
@@ -256,7 +287,6 @@ function updateSingleMessageDOM(msgId) {
   var msg = findMessageById(msgId);
   if (!msg || !DomRefs.chatContainer) return;
 
-  // Need findMessageById from state — import it
   var msgDiv = DomRefs.chatContainer.querySelector('.message-item[data-id="' + msgId + '"]');
   if (!msgDiv) {
     renderMessages();
@@ -311,6 +341,17 @@ function refreshMessageDOM(msgId) {
   var parts = renderMessageItem(msg);
   oldDiv.parentNode.replaceChild(parts.msgDiv, oldDiv);
   evaluateScrollToBottom();
+}
+
+/* ---- Version navigation ---- */
+
+/** Switch assistant message version index, persist, and re-render. */
+function setAssistantVersion(msg, versionIndex) {
+  if (!msg || msg.role !== 'assistant') return;
+  msg.currentVersionIndex = versionIndex;
+  applyCurrentVersion(msg);
+  persistMessages();
+  refreshMessageDOM(msg.id);
 }
 
 

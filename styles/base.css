@@ -31,7 +31,7 @@
   box-sizing: border-box;
 }
 
-.is-hidden {
+.u-none {
   display: none !important;
 }
 

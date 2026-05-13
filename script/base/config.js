@@ -1,6 +1,6 @@
 /* ================================================================
    config.js — Configuration UI: system prompt modal, thinking toggle,
-   config sync/save, and related event bindings
+   config sync/save
    ================================================================ */
 
 /* ---- System prompt modal ---- */
@@ -59,24 +59,6 @@ function saveConfiguration() {
   if (!isNaN(newTemp)) state.config.temperature = newTemp;
   persistConfig();
   closeSystemPromptModal();
-  setStatus('配置已保存', CONST.STATUS_TIMEOUT_SHORT);
+  setStatus(CONST.STATUS_SAVED, CONST.STATUS_TIMEOUT_SHORT);
 }
 
-/* ---- Event binding for config controls ---- */
-
-function bindConfigEvents() {
-  DomRefs.thinkingToggle.addEventListener('change', updateThinkingUI);
-  DomRefs.systemPromptInput.addEventListener('input', scrollSystemPromptToBottom);
-  DomRefs.systemPromptBtn.onclick = openSystemPromptModal;
-  DomRefs.systemPromptCloseBtn.onclick = closeSystemPromptModal;
-  document.addEventListener('keydown', function (event) {
-    if (event.key === 'Escape' && !DomRefs.systemPromptModal.classList.contains('is-hidden')) {
-      closeSystemPromptModal();
-    }
-  });
-  DomRefs.saveBtn.onclick = saveConfiguration;
-}
-
-function initConfig() {
-  bindConfigEvents();
-}

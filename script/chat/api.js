@@ -7,7 +7,7 @@ var BASE_URL = 'https://api.deepseek.com/beta/chat/completions';
 /* ---- API helper functions ---- */
 
 function buildSystemPromptMessage() {
-  const prompt = state.config.systemPrompt;
+  var prompt = state.config.systemPrompt;
   return typeof prompt === 'string' && prompt.trim() ? { role: 'system', content: prompt } : null;
 }
 
@@ -27,9 +27,9 @@ function ensureCanStartGeneration(requireApiKey) {
 
 function buildRequestBody(messagesArray, useThinking, extra) {
   if (extra === undefined) extra = {};
-  const systemMessage = buildSystemPromptMessage();
-  const messages = systemMessage ? [systemMessage, ...messagesArray] : messagesArray;
-  const body = {
+  var systemMessage = buildSystemPromptMessage();
+  var messages = systemMessage ? [systemMessage, ...messagesArray] : messagesArray;
+  var body = {
     model: state.config.model,
     messages,
     max_tokens: CONST.API_MAX_TOKENS,
@@ -48,11 +48,11 @@ function buildRequestBody(messagesArray, useThinking, extra) {
 
 /** Pure fetch + SSE streaming. No DOM or UI state side effects. */
 async function streamWithAbort(requestBody, contentCallback, reasoningCallback) {
-  const controller = new AbortController();
+  var controller = new AbortController();
   state.currentAbortController = controller;
 
   try {
-    const resp = await fetch(BASE_URL, {
+    var resp = await fetch(BASE_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -63,27 +63,28 @@ async function streamWithAbort(requestBody, contentCallback, reasoningCallback) 
     });
 
     if (!resp.ok) {
-      const errText = await resp.text();
+      var errText = await resp.text();
       throw new Error(`API ${resp.status}: ${errText.substring(0, 200)}`);
     }
 
-    const reader = resp.body.getReader();
-    const decoder = new TextDecoder('utf-8');
-    let buffer = '';
+    var reader = resp.body.getReader();
+    var decoder = new TextDecoder('utf-8');
+    var buffer = '';
 
     while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
+      var done_value = await reader.read();
+      if (done_value.done) break;
+      buffer += decoder.decode(done_value.value, { stream: true });
+      var lines = buffer.split('\n');
       buffer = lines.pop() || '';
 
-      for (const line of lines) {
-        const trimmed = line.trim();
+      for (var li = 0; li < lines.length; li++) {
+        var line = lines[li];
+        var trimmed = line.trim();
         if (!trimmed || trimmed === 'data: [DONE]') continue;
         if (trimmed.startsWith('data: ')) {
-          const chunk = JSON.parse(trimmed.slice(6));
-          const delta = chunk.choices?.[0]?.delta;
+          var chunk = JSON.parse(trimmed.slice(6));
+          var delta = chunk.choices?.[0]?.delta;
           if (delta) {
             if (delta.reasoning_content && reasoningCallback) reasoningCallback(delta.reasoning_content);
             if (delta.content && contentCallback) contentCallback(delta.content);
@@ -93,7 +94,7 @@ async function streamWithAbort(requestBody, contentCallback, reasoningCallback) 
     }
   } catch (err) {
     if (err.name === 'AbortError') {
-      throw new Error('用户中止');
+      throw new Error(CONST.ERR_ABORTED);
     }
     throw err;
   }
@@ -153,18 +154,17 @@ async function runAssistantTask(requestBody, msgId, loadingText, doneText, optio
     // onComplete
     if (!isPrefix && !fullContent) {
       withMessageVersion(msgId, versionIndex, function (_msg, ver) {
-        ver.content = '[空响应]';
+        ver.content = CONST.ERR_EMPTY_RESPONSE;
       });
     }
     persistMessages();
-    updateSingleMessageDOM(msgId);
     setStatus(doneText);
   } catch (err) {
-    setStatus('错误: ' + err.message);
+    setStatus(CONST.STATUS_ERROR_PREFIX + err.message);
     persistMessages();
-    updateSingleMessageDOM(msgId);
   } finally {
     cleanupGeneration();
+    updateSingleMessageDOM(msgId);
   }
 }
 

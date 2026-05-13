@@ -115,87 +115,6 @@
   margin-bottom: 0;
 }
 
-/* === Shared prose styles for both content and reasoning blocks === */
-
-.prose-content p {
-  margin: 0.55rem 0;
-}
-
-.prose-content h1,
-.prose-content h2,
-.prose-content h3,
-.prose-content h4,
-.prose-content h5,
-.prose-content h6 {
-  margin: 0.85rem 0 0.5rem;
-  line-height: 1.35;
-}
-
-.prose-content ul,
-.prose-content ol {
-  margin: 0.45rem 0 0.7rem 1.4rem;
-}
-
-.prose-content li {
-  margin: 0.22rem 0;
-}
-
-.prose-content blockquote {
-  border-left: 3px solid #cbd5e1;
-  margin: 0.7rem 0;
-  padding: 0.2rem 0 0.2rem 0.75rem;
-  color: #475569;
-  background: rgba(241, 245, 249, 0.6);
-}
-
-.prose-content code {
-  font-family: 'SF Mono', 'Fira Code', monospace;
-  background: #eef2f7;
-  padding: 0.1rem 0.35rem;
-  border-radius: 0.3rem;
-  font-size: 0.86em;
-}
-
-.prose-content pre {
-  background: var(--bg-accent-strong);
-  color: #e2e8f0;
-  border-radius: 0.5rem;
-  padding: 0.75rem 0.9rem;
-  margin: 0.7rem 0;
-  overflow-x: auto;
-}
-
-.prose-content pre code {
-  background: transparent;
-  padding: 0;
-  color: inherit;
-}
-
-.prose-content a {
-  color: #1d4ed8;
-  text-decoration: underline;
-}
-
-.prose-content table {
-  border-collapse: collapse;
-  margin: 0.7rem 0;
-  width: 100%;
-}
-
-.prose-content th,
-.prose-content td {
-  border: 1px solid #dbe3ee;
-  padding: 0.35rem 0.5rem;
-  text-align: left;
-  overflow-wrap: anywhere;
-}
-
-.prose-content hr {
-  border: 0;
-  border-top: 1px solid #d9e2ef;
-  margin: 0.85rem 0;
-}
-
 .reasoning-block {
   background: #f8fafd;
   border-left: 3px solid #6b7280;
@@ -321,7 +240,7 @@
   background: #f8fafc;
 }
 
-.scroll-to-bottom-btn.hidden {
+.scroll-to-bottom-btn.is-invisible {
   opacity: 0;
   pointer-events: none;
 }
@@ -491,6 +410,87 @@
   }
 }
 
+/* === Shared prose styles (Markdown rendering output) === */
+
+.prose-content p {
+  margin: 0.55rem 0;
+}
+
+.prose-content h1,
+.prose-content h2,
+.prose-content h3,
+.prose-content h4,
+.prose-content h5,
+.prose-content h6 {
+  margin: 0.85rem 0 0.5rem;
+  line-height: 1.35;
+}
+
+.prose-content ul,
+.prose-content ol {
+  margin: 0.45rem 0 0.7rem 1.4rem;
+}
+
+.prose-content li {
+  margin: 0.22rem 0;
+}
+
+.prose-content blockquote {
+  border-left: 3px solid #cbd5e1;
+  margin: 0.7rem 0;
+  padding: 0.2rem 0 0.2rem 0.75rem;
+  color: #475569;
+  background: rgba(241, 245, 249, 0.6);
+}
+
+.prose-content code {
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  background: #eef2f7;
+  padding: 0.1rem 0.35rem;
+  border-radius: 0.3rem;
+  font-size: 0.86em;
+}
+
+.prose-content pre {
+  background: var(--bg-accent-strong);
+  color: #e2e8f0;
+  border-radius: 0.5rem;
+  padding: 0.75rem 0.9rem;
+  margin: 0.7rem 0;
+  overflow-x: auto;
+}
+
+.prose-content pre code {
+  background: transparent;
+  padding: 0;
+  color: inherit;
+}
+
+.prose-content a {
+  color: #1d4ed8;
+  text-decoration: underline;
+}
+
+.prose-content table {
+  border-collapse: collapse;
+  margin: 0.7rem 0;
+  width: 100%;
+}
+
+.prose-content th,
+.prose-content td {
+  border: 1px solid #dbe3ee;
+  padding: 0.35rem 0.5rem;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.prose-content hr {
+  border: 0;
+  border-top: 1px solid #d9e2ef;
+  margin: 0.85rem 0;
+}
+
 /* === KaTeX Math Rendering === */
 
 .prose-content .katex-display {
@@ -519,4 +519,3 @@
   color: #cc0000;
   font-style: italic;
 }
-

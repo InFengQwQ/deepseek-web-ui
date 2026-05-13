@@ -34,7 +34,7 @@
           <option value="max" selected>max</option>
         </select>
       </div>
-      <div class="field is-hidden" id="tempField">
+      <div class="field u-none" id="tempField">
         <label>温度</label>
         <input type="number" id="tempInput" class="narrow-number" value="0.7" step="0.1" min="0" max="2">
       </div>
@@ -50,7 +50,7 @@
 
   <div class="chat-pane" id="chatContainer"></div>
 
-  <div class="modal-overlay is-hidden" id="systemPromptModal" aria-hidden="true">
+  <div class="modal-overlay u-none" id="systemPromptModal" aria-hidden="true">
     <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="systemPromptTitle">
       <div class="modal-header">
         <div>
@@ -65,13 +65,13 @@
     </div>
   </div>
 
-  <button class="scroll-to-bottom-btn hidden" id="scrollToBottomBtn" title="回到最底部">
+  <button class="scroll-to-bottom-btn is-invisible" id="scrollToBottomBtn" title="回到最底部">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>
   </button>
 
   <div class="status-bar" id="statusMsg">就绪</div>
 
-  <button class="stop-generation-btn is-hidden" id="stopGenBtn" title="停止生成">
+  <button class="stop-generation-btn u-none" id="stopGenBtn" title="停止生成">
     <svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2" /></svg>
   </button>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
@@ -86,12 +86,17 @@
           crossorigin="anonymous"></script>
   <script src="script/base/dom.js" defer></script>
   <script src="script/base/markdown.js" defer></script>
+  <script src="script/base/constants.js" defer></script>
+  <script src="script/base/icons.js" defer></script>
   <script src="script/base/utils.js" defer></script>
   <script src="script/base/state.js" defer></script>
-  <script src="script/chat/api.js" defer></script>
+  <script src="script/base/messages.js" defer></script>
   <script src="script/chat/render.js" defer></script>
+  <script src="script/chat/api.js" defer></script>
   <script src="script/base/config.js" defer></script>
+  <script src="script/chat/generation.js" defer></script>
   <script src="script/chat/actions.js" defer></script>
+  <script src="script/base/events.js" defer></script>
   <script src="script/app.js" defer></script>
 </body>
 </html>

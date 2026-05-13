@@ -2,14 +2,13 @@
    app.js — Application bootstrap entry point
    ================================================================ */
 
-/** Bootstrap the application: init DOM, load state, wire events, render. */
+/** Bootstrap the application. */
 function bootstrapApp() {
   initDomRefs();
   loadMessagesFromStorage();
-  initActions();
   syncConfigToUI();
   renderMessages();
+  bindAllEvents();
 }
 
-// Auto-bootstrap when DOM is ready (script loads with defer)
 bootstrapApp();
