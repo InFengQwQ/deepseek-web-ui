@@ -3,6 +3,8 @@
    Depends on: marked.js, DOMPurify, KaTeX (global CDN scripts)
    ================================================================ */
 
+(function() {
+
 /** Escape HTML special characters in a string. */
 function escapeHtml(input) {
   return String(input)
@@ -110,6 +112,11 @@ function renderMarkdownToHTML(text) {
     // Step 4: Restore math + code, then sanitize
     return restorePlaceholders(html, codeResult.placeholders, mathResult.placeholders);
   } catch (e) {
-    return '<p style="color:#b91c1c">' + CONST.ERR_RENDER_FALLBACK + escapeHtml(String(e.message || e)) + '</p>';
+    return '<p style="color:#b91c1c">' + ERR.RENDER_FALLBACK + escapeHtml(String(e.message || e)) + '</p>';
   }
 }
+
+window.escapeHtml = escapeHtml;
+window.renderMarkdownToHTML = renderMarkdownToHTML;
+
+})();

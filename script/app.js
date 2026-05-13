@@ -2,6 +2,8 @@
    app.js — Application bootstrap entry point
    ================================================================ */
 
+(function() {
+
 /** Bootstrap the application. */
 function bootstrapApp() {
   initDomRefs();
@@ -12,3 +14,5 @@ function bootstrapApp() {
 }
 
 bootstrapApp();
+
+})();

@@ -3,6 +3,8 @@
    config sync/save
    ================================================================ */
 
+(function() {
+
 /* ---- System prompt modal ---- */
 
 function scrollSystemPromptToBottom() {
@@ -59,6 +61,15 @@ function saveConfiguration() {
   if (!isNaN(newTemp)) state.config.temperature = newTemp;
   persistConfig();
   closeSystemPromptModal();
-  setStatus(CONST.STATUS_SAVED, CONST.STATUS_TIMEOUT_SHORT);
+  setStatus(STATUS.SAVED, CFG.STATUS_TIMEOUT_SHORT);
 }
+
+window.scrollSystemPromptToBottom = scrollSystemPromptToBottom;
+window.openSystemPromptModal = openSystemPromptModal;
+window.closeSystemPromptModal = closeSystemPromptModal;
+window.updateThinkingUI = updateThinkingUI;
+window.syncConfigToUI = syncConfigToUI;
+window.saveConfiguration = saveConfiguration;
+
+})();
 

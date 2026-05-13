@@ -2,7 +2,9 @@
    dom.js — DOM element references (initialized at bootstrap)
    ================================================================ */
 
-var DomRefs = {
+(function() {
+
+window.DomRefs = {
   chatContainer: null,
   statusSpan: null,
   stopBtn: null,
@@ -46,3 +48,7 @@ function initDomRefs() {
   DomRefs.importBtn = document.getElementById('importBtn');
   return DomRefs;
 }
+
+window.initDomRefs = initDomRefs;
+
+})();

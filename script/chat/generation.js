@@ -2,25 +2,24 @@
    generation.js — Response generation: new, prefix, regenerate, stop
    ================================================================ */
 
+(function() {
+
 /* ---- Stop generation ---- */
 
 function stopGeneration() {
   var msgId = state.activeGeneratingMessageId;
   if (state.currentAbortController) {
     state.currentAbortController.abort();
-    state.currentAbortController = null;
   }
-  state.isGenerating = false;
-  state.activeGeneratingMessageId = null;
-  setHidden(DomRefs.stopBtn, true);
-  setStatus(CONST.STATUS_STOPPED);
+  cleanupGeneration();
+  setStatus(STATUS.STOPPED);
   if (msgId != null) updateSingleMessageDOM(msgId);
 }
 
 /* ---- Generation ---- */
 
 async function generateNewResponse(afterMsgId) {
-  if (!ensureCanStartGeneration(true)) { setStatus(CONST.STATUS_BLOCKED); return; }
+  if (!ensureCanStartGeneration(true)) { setStatus(STATUS.BLOCKED); return; }
   var idx = findMessageIndexById(afterMsgId);
   if (idx === -1) return;
   var context = buildApiContextThroughIndex(idx);
@@ -34,7 +33,7 @@ async function generateNewResponse(afterMsgId) {
 }
 
 async function prefixCompletion(assistantId) {
-  if (!ensureCanStartGeneration(true)) { setStatus(CONST.STATUS_BLOCKED); return; }
+  if (!ensureCanStartGeneration(true)) { setStatus(STATUS.BLOCKED); return; }
   var targetIdx = findMessageIndexById(assistantId);
   if (targetIdx === -1) return;
   var targetMsg = findMessageById(assistantId);
@@ -53,7 +52,7 @@ async function prefixCompletion(assistantId) {
 }
 
 async function regenerateAssistant(assistantId) {
-  if (!ensureCanStartGeneration(false)) { setStatus(CONST.STATUS_BLOCKED_RETRY); return; }
+  if (!ensureCanStartGeneration(false)) { setStatus(STATUS.BLOCKED_RETRY); return; }
   var idx = findMessageIndexById(assistantId);
   if (idx === -1 || state.messages[idx].role !== 'assistant') return;
   var historyBefore = state.messages.slice(0, idx);
@@ -64,3 +63,10 @@ async function regenerateAssistant(assistantId) {
   var requestBody = buildRequestBody(historyBefore.map(toApiMessage), state.config.thinkingEnabled);
   await startGeneration(requestBody, assistantId, { versionIndex });
 }
+
+window.stopGeneration = stopGeneration;
+window.generateNewResponse = generateNewResponse;
+window.prefixCompletion = prefixCompletion;
+window.regenerateAssistant = regenerateAssistant;
+
+})();

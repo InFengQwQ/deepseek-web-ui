@@ -2,10 +2,12 @@
    render.js — DOM rendering and message display
    ================================================================ */
 
+(function() {
+
 /* ---- Scroll helpers ---- */
 
 function preserveScrollPosition(container, fn) {
-  var isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < CONST.SCROLL_BOTTOM_THRESHOLD;
+  var isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < CFG.SCROLL_BOTTOM_THRESHOLD;
   var previousScrollTop = container.scrollTop;
   fn();
   if (isAtBottom) {
@@ -20,7 +22,7 @@ function evaluateScrollToBottom() {
   var b = DomRefs.scrollToBottomBtn;
   if (!c || !b) return;
   var distanceFromBottom = c.scrollHeight - c.scrollTop - c.clientHeight;
-  if (distanceFromBottom > CONST.SCROLL_BTN_THRESHOLD) {
+  if (distanceFromBottom > CFG.SCROLL_BTN_THRESHOLD) {
     b.classList.remove('is-invisible');
   } else {
     b.classList.add('is-invisible');
@@ -47,11 +49,11 @@ function createEditModeUI(msg, contentDiv, actionsDiv) {
 
   var saveBtn = document.createElement('button');
   saveBtn.className = 'small primary message-edit-save';
-  saveBtn.innerText = CONST.UI_BTN_SAVE;
+  saveBtn.innerText = UI.BTN_SAVE;
 
   var cancelBtn = document.createElement('button');
   cancelBtn.className = 'small';
-  cancelBtn.innerText = CONST.UI_BTN_CANCEL;
+  cancelBtn.innerText = UI.BTN_CANCEL;
 
   var editActions = document.createElement('div');
   editActions.className = 'message-edit-actions';
@@ -78,11 +80,11 @@ function createReasoningHeader(initialCollapsed) {
   header.className = 'reasoning-header';
 
   var title = document.createElement('span');
-  title.innerText = CONST.UI_REASONING_TITLE;
+  title.innerText = UI.REASONING_TITLE;
 
   var stateSpan = document.createElement('span');
   stateSpan.className = 'reasoning-header-state';
-  stateSpan.innerText = initialCollapsed ? CONST.UI_REASONING_COLLAPSED : CONST.UI_REASONING_EXPANDED;
+  stateSpan.innerText = initialCollapsed ? UI.REASONING_COLLAPSED : UI.REASONING_EXPANDED;
 
   header.appendChild(title);
   header.appendChild(document.createTextNode(' '));
@@ -105,7 +107,7 @@ function createReasoningBlockDOM(reasoningContent) {
   hdr.header.onclick = function () {
     collapsed = !collapsed;
     setHidden(contentDiv, collapsed);
-    hdr.stateSpan.innerText = collapsed ? CONST.UI_REASONING_COLLAPSED : CONST.UI_REASONING_EXPANDED;
+    hdr.stateSpan.innerText = collapsed ? UI.REASONING_COLLAPSED : UI.REASONING_EXPANDED;
   };
 
   reasoningDiv.appendChild(hdr.header);
@@ -114,30 +116,57 @@ function createReasoningBlockDOM(reasoningContent) {
 }
 
 function renderEmptyState() {
-  DomRefs.chatContainer.innerHTML =
-    '<div class="empty-state">' +
-      '<div class="empty-state-title">' + CONST.UI_EMPTY_TITLE + '</div>' +
-      '<div class="empty-input-row">' +
-        '<div class="empty-input-spacer" aria-hidden="true"></div>' +
-        '<div class="empty-input-wrapper">' +
-          '<div class="empty-input-shell">' +
-            '<textarea id="emptyInput" placeholder="' + CONST.UI_EMPTY_PLACEHOLDER + '" rows="1" autofocus></textarea>' +
-          '</div>' +
-        '</div>' +
-        '<button id="emptySendBtn" class="primary">' + CONST.UI_BTN_SEND + '</button>' +
-      '</div>' +
-    '</div>';
+  var container = DomRefs.chatContainer;
+  container.innerHTML = '';
 
-  document.getElementById('emptySendBtn').onclick = function () {
-    var input = document.getElementById('emptyInput');
-    var content = input.value;
+  var emptyState = document.createElement('div');
+  emptyState.className = 'empty-state';
+
+  var title = document.createElement('div');
+  title.className = 'empty-state-title';
+  title.innerText = UI.EMPTY_TITLE;
+
+  var inputRow = document.createElement('div');
+  inputRow.className = 'empty-input-row';
+
+  var spacer = document.createElement('div');
+  spacer.className = 'empty-input-spacer';
+  spacer.setAttribute('aria-hidden', 'true');
+
+  var inputWrapper = document.createElement('div');
+  inputWrapper.className = 'empty-input-wrapper';
+
+  var inputShell = document.createElement('div');
+  inputShell.className = 'empty-input-shell';
+
+  var textarea = document.createElement('textarea');
+  textarea.id = 'emptyInput';
+  textarea.placeholder = UI.EMPTY_PLACEHOLDER;
+  textarea.rows = 1;
+  textarea.autofocus = true;
+
+  var sendBtn = document.createElement('button');
+  sendBtn.id = 'emptySendBtn';
+  sendBtn.className = 'primary';
+  sendBtn.innerText = UI.BTN_SEND;
+
+  sendBtn.onclick = function () {
+    var content = textarea.value;
     state.messages = state.messages.concat([createMessage('user', content)]);
     renderMessages();
     persistMessages();
   };
 
-  var emptyInput = document.getElementById('emptyInput');
-  autoResizeTextarea(emptyInput, { minHeight: CONST.TEXTAREA_MIN_HEIGHT, maxHeight: CONST.TEXTAREA_MAX_HEIGHT, clampOverflow: true });
+  inputShell.appendChild(textarea);
+  inputWrapper.appendChild(inputShell);
+  inputRow.appendChild(spacer);
+  inputRow.appendChild(inputWrapper);
+  inputRow.appendChild(sendBtn);
+  emptyState.appendChild(title);
+  emptyState.appendChild(inputRow);
+  container.appendChild(emptyState);
+
+  autoResizeTextarea(textarea, { minHeight: CFG.TEXTAREA_MIN_HEIGHT, maxHeight: CFG.TEXTAREA_MAX_HEIGHT, clampOverflow: true });
 }
 
 function renderMessageMeta(msg) {
@@ -146,7 +175,7 @@ function renderMessageMeta(msg) {
 
   var roleSpan = document.createElement('span');
   roleSpan.className = 'msg-role ' + msg.role;
-  roleSpan.innerText = msg.role === 'user' ? CONST.UI_ROLE_USER : CONST.UI_ROLE_ASSISTANT;
+  roleSpan.innerText = msg.role === 'user' ? UI.ROLE_USER : UI.ROLE_ASSISTANT;
 
   var timeSpan = document.createElement('span');
   timeSpan.className = 'msg-time';
@@ -204,22 +233,22 @@ function renderMessageActions(msg, contentDiv) {
   var actionsDiv = document.createElement('div');
   actionsDiv.className = 'msg-actions';
 
-  actionsDiv.appendChild(createActionIconBtn(CONST.UI_ACTION_INSERT, ICONS.insert, function () { insertUserMessageAfter(msg.id); }, false));
-  actionsDiv.appendChild(createActionIconBtn(CONST.UI_ACTION_EDIT, ICONS.edit, function () { editMessage(msg.id, contentDiv, actionsDiv); }, false));
-  actionsDiv.appendChild(createActionIconBtn(CONST.UI_ACTION_DELETE, ICONS.delete, function () { deleteMessage(msg.id); }, false));
+  actionsDiv.appendChild(createActionIconBtn(UI.ACTION_INSERT, ICONS.insert, function () { insertUserMessageAfter(msg.id); }, false));
+  actionsDiv.appendChild(createActionIconBtn(UI.ACTION_EDIT, ICONS.edit, function () { editMessage(msg.id, contentDiv, actionsDiv); }, false));
+  actionsDiv.appendChild(createActionIconBtn(UI.ACTION_DELETE, ICONS.delete, function () { deleteMessage(msg.id); }, false));
 
   var sep1 = document.createElement('span');
   sep1.className = 'action-sep';
   actionsDiv.appendChild(sep1);
 
-  actionsDiv.appendChild(createActionIconBtn(CONST.UI_ACTION_GENERATE, ICONS.generate, function () { generateNewResponse(msg.id); }, true));
+  actionsDiv.appendChild(createActionIconBtn(UI.ACTION_GENERATE, ICONS.generate, function () { generateNewResponse(msg.id); }, true));
 
   if (msg.role === 'assistant') {
     var sep2 = document.createElement('span');
     sep2.className = 'action-sep';
     actionsDiv.appendChild(sep2);
-    actionsDiv.appendChild(createActionIconBtn(CONST.UI_ACTION_PREFIX, ICONS.prefix, function () { prefixCompletion(msg.id); }, true));
-    actionsDiv.appendChild(createActionIconBtn(CONST.UI_ACTION_REGENERATE, ICONS.regenerate, function () { regenerateAssistant(msg.id); }, true));
+    actionsDiv.appendChild(createActionIconBtn(UI.ACTION_PREFIX, ICONS.prefix, function () { prefixCompletion(msg.id); }, true));
+    actionsDiv.appendChild(createActionIconBtn(UI.ACTION_REGENERATE, ICONS.regenerate, function () { regenerateAssistant(msg.id); }, true));
   }
 
   return actionsDiv;
@@ -289,7 +318,7 @@ function updateSingleMessageDOM(msgId) {
 
   var msgDiv = DomRefs.chatContainer.querySelector('.message-item[data-id="' + msgId + '"]');
   if (!msgDiv) {
-    renderMessages();
+    refreshMessageDOM(msgId);
     return;
   }
 
@@ -354,5 +383,23 @@ function setAssistantVersion(msg, versionIndex) {
   refreshMessageDOM(msg.id);
 }
 
+window.preserveScrollPosition = preserveScrollPosition;
+window.evaluateScrollToBottom = evaluateScrollToBottom;
+window.createActionIconBtn = createActionIconBtn;
+window.createEditModeUI = createEditModeUI;
+window.createReasoningHeader = createReasoningHeader;
+window.createReasoningBlockDOM = createReasoningBlockDOM;
+window.renderEmptyState = renderEmptyState;
+window.renderMessageMeta = renderMessageMeta;
+window.renderVersionNav = renderVersionNav;
+window.renderReasoningBlock = renderReasoningBlock;
+window.renderMessageActions = renderMessageActions;
+window.renderMessageItem = renderMessageItem;
+window.renderMessages = renderMessages;
+window.updateSingleMessageDOM = updateSingleMessageDOM;
+window.refreshMessageDOM = refreshMessageDOM;
+window.setAssistantVersion = setAssistantVersion;
+
+})();
 
 

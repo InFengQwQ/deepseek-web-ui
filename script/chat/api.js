@@ -2,6 +2,8 @@
    api.js — DeepSeek API interaction and streaming
    ================================================================ */
 
+(function() {
+
 var BASE_URL = 'https://api.deepseek.com/beta/chat/completions';
 
 /* ---- API helper functions ---- */
@@ -32,7 +34,7 @@ function buildRequestBody(messagesArray, useThinking, extra) {
   var body = {
     model: state.config.model,
     messages,
-    max_tokens: CONST.API_MAX_TOKENS,
+    max_tokens: CFG.API_MAX_TOKENS,
     stream: true,
   };
   if (useThinking) {
@@ -94,7 +96,7 @@ async function streamWithAbort(requestBody, contentCallback, reasoningCallback) 
     }
   } catch (err) {
     if (err.name === 'AbortError') {
-      throw new Error(CONST.ERR_ABORTED);
+      throw new Error(ERR.ABORTED);
     }
     throw err;
   }
@@ -154,13 +156,13 @@ async function runAssistantTask(requestBody, msgId, loadingText, doneText, optio
     // onComplete
     if (!isPrefix && !fullContent) {
       withMessageVersion(msgId, versionIndex, function (_msg, ver) {
-        ver.content = CONST.ERR_EMPTY_RESPONSE;
+        ver.content = ERR.EMPTY_RESPONSE;
       });
     }
     persistMessages();
     setStatus(doneText);
   } catch (err) {
-    setStatus(CONST.STATUS_ERROR_PREFIX + err.message);
+    setStatus(STATUS.ERROR_PREFIX + err.message);
     persistMessages();
   } finally {
     cleanupGeneration();
@@ -173,7 +175,18 @@ function startGeneration(requestBody, msgId, options) {
   state.activeGeneratingMessageId = msgId;
   refreshMessageDOM(msgId);
   persistMessages();
-  return runAssistantTask(requestBody, msgId, CONST.STATUS_GENERATING, CONST.STATUS_DONE, options);
+  return runAssistantTask(requestBody, msgId, STATUS.GENERATING, STATUS.DONE, options);
 }
 
+window.buildSystemPromptMessage = buildSystemPromptMessage;
+window.buildApiContextThroughIndex = buildApiContextThroughIndex;
+window.ensureCanStartGeneration = ensureCanStartGeneration;
+window.buildRequestBody = buildRequestBody;
+window.streamWithAbort = streamWithAbort;
+window.cleanupGeneration = cleanupGeneration;
+window.withMessageVersion = withMessageVersion;
+window.runAssistantTask = runAssistantTask;
+window.startGeneration = startGeneration;
+
+})();
 

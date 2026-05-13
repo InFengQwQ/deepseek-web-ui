@@ -2,30 +2,47 @@
    state.js — Central application state & config persistence
    ================================================================ */
 
+(function() {
+
+/** Config schema — single source of truth mapping config properties to storage keys & defaults. */
+var CONFIG_SCHEMA = [
+  { prop: 'apiKey',           key: STORAGE_KEYS.apiKey,           def: '',                    parse: null },
+  { prop: 'model',            key: STORAGE_KEYS.model,            def: 'deepseek-v4-pro',     parse: null },
+  { prop: 'thinkingEnabled',  key: STORAGE_KEYS.thinking,         def: false,                  parse: function(v) { return v === 'true'; } },
+  { prop: 'reasoningEffort',  key: STORAGE_KEYS.reasoningEffort,  def: 'max',                  parse: null },
+  { prop: 'temperature',      key: STORAGE_KEYS.temperature,      def: CFG.API_DEFAULT_TEMP,   parse: parseFloat },
+  { prop: 'systemPrompt',     key: STORAGE_KEYS.systemPrompt,     def: '',                    parse: null }
+];
+
+function loadConfigFromStorage() {
+  var config = {};
+  for (var i = 0; i < CONFIG_SCHEMA.length; i++) {
+    var item = CONFIG_SCHEMA[i];
+    var stored = localStorage.getItem(item.key);
+    config[item.prop] = stored !== null ? (item.parse ? item.parse(stored) : stored) : item.def;
+  }
+  return config;
+}
+
 /** Central application state — direct property access. */
-var state = {
+window.state = {
   messages: [],
   nextId: 1,
   isGenerating: false,
   activeGeneratingMessageId: null,
   currentAbortController: null,
-  config: {
-    apiKey: localStorage.getItem(STORAGE_KEYS.apiKey) || '',
-    model: localStorage.getItem(STORAGE_KEYS.model) || 'deepseek-v4-pro',
-    thinkingEnabled: localStorage.getItem(STORAGE_KEYS.thinking) === 'true',
-    reasoningEffort: localStorage.getItem(STORAGE_KEYS.reasoningEffort) || 'max',
-    temperature: parseFloat(localStorage.getItem(STORAGE_KEYS.temperature) || String(CONST.API_DEFAULT_TEMP)),
-    systemPrompt: localStorage.getItem(STORAGE_KEYS.systemPrompt) || ''
-  }
+  config: loadConfigFromStorage()
 };
 
 /** Persist current config to localStorage. */
 function persistConfig() {
   var c = state.config;
-  localStorage.setItem(STORAGE_KEYS.apiKey, c.apiKey);
-  localStorage.setItem(STORAGE_KEYS.model, c.model);
-  localStorage.setItem(STORAGE_KEYS.thinking, c.thinkingEnabled);
-  localStorage.setItem(STORAGE_KEYS.reasoningEffort, c.reasoningEffort);
-  localStorage.setItem(STORAGE_KEYS.systemPrompt, c.systemPrompt);
-  localStorage.setItem(STORAGE_KEYS.temperature, c.temperature);
+  for (var i = 0; i < CONFIG_SCHEMA.length; i++) {
+    var item = CONFIG_SCHEMA[i];
+    localStorage.setItem(item.key, c[item.prop]);
+  }
 }
+
+window.persistConfig = persistConfig;
+
+})();

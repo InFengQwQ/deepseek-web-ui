@@ -3,7 +3,19 @@
    and localStorage persistence
    ================================================================ */
 
+(function() {
+
 /* ---- Message creation & query ---- */
+
+/** Sanitize core message fields with type-safe defaults — used when ingesting raw/external data. */
+function sanitizeMessageFields(source) {
+  return {
+    role: source.role,
+    content: typeof source.content === 'string' ? source.content : '',
+    reasoning_content: typeof source.reasoning_content === 'string' ? source.reasoning_content : null,
+    createdAt: typeof source.createdAt === 'string' ? source.createdAt : new Date().toISOString()
+  };
+}
 
 function messageCoreFields(msg) {
   return {
@@ -26,12 +38,13 @@ function serializeMessageRecord(msg) {
 function createMessage(role, content, options) {
   if (content === undefined) content = '';
   if (options === undefined) options = {};
+  var fields = sanitizeMessageFields({ role: role, content: content, reasoning_content: options.reasoning_content, createdAt: options.createdAt });
   return {
     id: Number.isFinite(options.id) ? options.id : state.nextId++,
-    role: role,
-    content: typeof content === 'string' ? content : '',
-    reasoning_content: typeof options.reasoning_content === 'string' ? options.reasoning_content : null,
-    createdAt: typeof options.createdAt === 'string' ? options.createdAt : new Date().toISOString(),
+    role: fields.role,
+    content: fields.content,
+    reasoning_content: fields.reasoning_content,
+    createdAt: fields.createdAt,
     _isNew: !!options.isNew
   };
 }
@@ -76,13 +89,8 @@ function loadMessagesFromStorage() {
 }
 
 function normalizeMessageRecord(msg) {
-  var normalized = {
-    id: msg.id,
-    role: msg.role,
-    content: typeof msg.content === 'string' ? msg.content : '',
-    reasoning_content: typeof msg.reasoning_content === 'string' ? msg.reasoning_content : null,
-    createdAt: typeof msg.createdAt === 'string' ? msg.createdAt : new Date().toISOString()
-  };
+  var normalized = sanitizeMessageFields(msg);
+  normalized.id = msg.id;
   if (normalized.role === 'assistant') {
     var rawVersions = Array.isArray(msg.versions) && msg.versions.length > 0 ? msg.versions : [normalized];
     normalized.versions = rawVersions.map(cloneVersionEntry);
@@ -134,3 +142,19 @@ function appendAssistantVersion(msg, initialVersion) {
   msg.currentVersionIndex = msg.versions.length - 1;
   return applyCurrentVersion(msg) ? msg.currentVersionIndex : null;
 }
+
+window.messageCoreFields = messageCoreFields;
+window.serializeMessageRecord = serializeMessageRecord;
+window.createMessage = createMessage;
+window.findMessageById = findMessageById;
+window.findMessageIndexById = findMessageIndexById;
+window.toApiMessage = toApiMessage;
+window.persistMessages = persistMessages;
+window.loadMessagesFromStorage = loadMessagesFromStorage;
+window.normalizeMessageRecord = normalizeMessageRecord;
+window.cloneVersionEntry = cloneVersionEntry;
+window.applyCurrentVersion = applyCurrentVersion;
+window.getAssistantVersion = getAssistantVersion;
+window.appendAssistantVersion = appendAssistantVersion;
+
+})();

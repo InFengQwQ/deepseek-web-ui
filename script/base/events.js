@@ -3,6 +3,8 @@
    (config controls, chat actions, scroll, import/export, stop)
    ================================================================ */
 
+(function() {
+
 function bindAllEvents() {
   /* ---- Config controls ---- */
   DomRefs.thinkingToggle.addEventListener('change', updateThinkingUI);
@@ -43,3 +45,7 @@ function bindAllEvents() {
     DomRefs.chatContainer.scrollTop = DomRefs.chatContainer.scrollHeight;
   };
 }
+
+window.bindAllEvents = bindAllEvents;
+
+})();

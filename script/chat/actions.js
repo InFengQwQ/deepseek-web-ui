@@ -2,15 +2,17 @@
    actions.js — Chat actions: message CRUD, import/export
    ================================================================ */
 
+(function() {
+
 /* ---- Clear all messages ---- */
 
 function clearAllMessages() {
-  if (confirm(CONST.DIALOG_CONFIRM_CLEAR)) {
+  if (confirm(CFG.DIALOG_CONFIRM_CLEAR)) {
     state.messages = [];
     state.nextId = 1;
     renderMessages();
     persistMessages();
-    setStatus(CONST.STATUS_CLEARED);
+    setStatus(STATUS.CLEARED);
   }
 }
 
@@ -22,10 +24,10 @@ function exportConversation() {
   var url = URL.createObjectURL(blob);
   var a = document.createElement('a');
   a.href = url;
-  a.download = CONST.EXPORT_FILENAME_PREFIX + new Date().toISOString().slice(0, 19) + CONST.EXPORT_EXT;
+  a.download = CFG.EXPORT_FILENAME_PREFIX + new Date().toISOString().slice(0, 19) + CFG.EXPORT_EXT;
   a.click();
   URL.revokeObjectURL(url);
-  setStatus(CONST.STATUS_EXPORTED, CONST.STATUS_TIMEOUT_SHORT);
+  setStatus(STATUS.EXPORTED, CFG.STATUS_TIMEOUT_SHORT);
 }
 
 function importConversation(file) {
@@ -34,7 +36,7 @@ function importConversation(file) {
     try {
       var imported = JSON.parse(e.target.result);
       var msgs = imported.messages || imported;
-      if (!Array.isArray(msgs)) throw new Error(CONST.ERR_IMPORT_INVALID);
+      if (!Array.isArray(msgs)) throw new Error(ERR.IMPORT_INVALID);
       var newMsgs = msgs.map(function (msg) {
         return normalizeMessageRecord({
           id: state.nextId++,
@@ -46,13 +48,13 @@ function importConversation(file) {
           currentVersionIndex: msg.currentVersionIndex
         });
       });
-      if (newMsgs.length === 0) throw new Error(CONST.ERR_IMPORT_EMPTY);
+      if (newMsgs.length === 0) throw new Error(ERR.IMPORT_EMPTY);
       state.messages = newMsgs;
       renderMessages();
       persistMessages();
-      setStatus(CONST.STATUS_IMPORTED + state.messages.length + ' 条消息', CONST.STATUS_TIMEOUT_LONG);
+      setStatus(STATUS.IMPORTED + state.messages.length + ' 条消息', CFG.STATUS_TIMEOUT_LONG);
     } catch (err) {
-      setStatus(CONST.STATUS_IMPORT_ERROR_PREFIX + err.message);
+      setStatus(STATUS.IMPORT_ERROR_PREFIX + err.message);
     }
   };
   reader.readAsText(file);
@@ -111,7 +113,7 @@ function editMessage(msgId, contentDiv, actionsDiv, isNew) {
       msg.content = newContent;
     }
     persistMessages();
-    setStatus(isNew ? CONST.STATUS_INSERTED : CONST.STATUS_MODIFIED, CONST.STATUS_TIMEOUT_SHORT);
+    setStatus(isNew ? STATUS.INSERTED : STATUS.MODIFIED, CFG.STATUS_TIMEOUT_SHORT);
     refreshMessageDOM(msg.id);
   };
 
@@ -132,6 +134,16 @@ function deleteMessage(msgId) {
     if (msgDiv) msgDiv.remove();
     if (state.messages.length === 0) renderEmptyState();
     persistMessages();
-    setStatus(CONST.STATUS_DELETED);
+    setStatus(STATUS.DELETED);
   }
 }
+
+window.clearAllMessages = clearAllMessages;
+window.exportConversation = exportConversation;
+window.importConversation = importConversation;
+window.enterEditModeForNewMessages = enterEditModeForNewMessages;
+window.insertUserMessageAfter = insertUserMessageAfter;
+window.editMessage = editMessage;
+window.deleteMessage = deleteMessage;
+
+})();

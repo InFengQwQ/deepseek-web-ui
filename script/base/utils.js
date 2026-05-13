@@ -3,6 +3,8 @@
    formatMessageTime, autoResizeTextarea
    ================================================================ */
 
+(function() {
+
 /** Toggle the `u-none` CSS class on an element. */
 function setHidden(element, hidden) {
   if (!element) return;
@@ -17,7 +19,7 @@ function setStatus(text, resetAfterMs) {
   if (resetAfterMs > 0) {
     setTimeout(function () {
       if (DomRefs.statusSpan && DomRefs.statusSpan.innerText === text) {
-        DomRefs.statusSpan.innerText = CONST.STATUS_IDLE;
+        DomRefs.statusSpan.innerText = STATUS.IDLE;
       }
     }, resetAfterMs);
   }
@@ -62,3 +64,10 @@ function autoResizeTextarea(textarea, options) {
   resize({ applyHeight: applyInitialHeight });
   return resize;
 }
+
+window.setHidden = setHidden;
+window.setStatus = setStatus;
+window.formatMessageTime = formatMessageTime;
+window.autoResizeTextarea = autoResizeTextarea;
+
+})();
