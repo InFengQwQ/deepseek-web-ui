@@ -17,7 +17,7 @@ function clearAllMessages() {
 /* ---- Export / Import ---- */
 
 function exportConversation() {
-  var data = state.messages.map(serializeMessageRecord);
+  var data = { messages: state.messages.map(serializeMessageRecord) };
   var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   var url = URL.createObjectURL(blob);
   var a = document.createElement('a');
@@ -33,8 +33,8 @@ function importConversation(file) {
   reader.onload = function (e) {
     try {
       var imported = JSON.parse(e.target.result);
-      var msgs = imported.messages || imported;
-      if (!Array.isArray(msgs)) throw new Error(ERR.IMPORT_INVALID);
+      var msgs = imported.messages;
+      if (!Array.isArray(msgs)) throw new Error('无效格式');
       var newMsgs = msgs.map(function (msg) {
         return normalizeMessageRecord({
           id: state.nextId++,
@@ -46,10 +46,9 @@ function importConversation(file) {
           currentVersionIndex: msg.currentVersionIndex
         });
       });
-      if (newMsgs.length === 0) throw new Error(ERR.IMPORT_EMPTY);
       state.replaceMessages(newMsgs);
       renderMessages();
-      setStatus(STATUS.IMPORTED + state.messages.length + ' 条消息', CFG.STATUS_TIMEOUT_LONG);
+      setStatus(STATUS.IMPORTED, CFG.STATUS_TIMEOUT_LONG);
     } catch (err) {
       setStatus(STATUS.IMPORT_ERROR_PREFIX + err.message);
     }

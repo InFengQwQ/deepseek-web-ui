@@ -44,16 +44,11 @@ async function runAssistantTask(requestBody, msgId, loadingText, doneText, optio
       }
     );
     // onComplete
-    if (!isPrefix && !fullContent) {
-      mutateVersion(msgId, versionIndex, function (_msg, ver) {
-        ver.content = ERR.EMPTY_RESPONSE;
-      });
-    }
     persistMessages();
     setStatus(doneText);
   } catch (err) {
-    setStatus(STATUS.ERROR_PREFIX + err.message);
     persistMessages();
+    setStatus(err.message === 'ABORTED' ? STATUS.STOPPED : STATUS.ERROR_PREFIX + err.message);
   } finally {
     cleanupGeneration();
     updateSingleMessageDOM(msgId);
@@ -79,14 +74,12 @@ function stopGeneration() {
   state.endGeneration();
   syncGenButtonStates();
   setHidden(DomRefs.stopBtn, true);
-  setStatus(STATUS.STOPPED);
   if (msgId != null) updateSingleMessageDOM(msgId);
 }
 
 /* ---- Generation ---- */
 
 async function generateNewResponse(afterMsgId) {
-  if (!ensureCanStartGeneration(true)) { setStatus(STATUS.BLOCKED); return; }
   var idx = findMessageIndexById(afterMsgId);
   if (idx === -1) return;
   var context = buildApiContextThroughIndex(idx);
@@ -100,7 +93,6 @@ async function generateNewResponse(afterMsgId) {
 }
 
 async function prefixCompletion(assistantId) {
-  if (!ensureCanStartGeneration(true)) { setStatus(STATUS.BLOCKED); return; }
   var targetIdx = findMessageIndexById(assistantId);
   if (targetIdx === -1) return;
   var targetMsg = findMessageById(assistantId);
@@ -119,7 +111,7 @@ async function prefixCompletion(assistantId) {
 }
 
 async function regenerateAssistant(assistantId) {
-  if (!ensureCanStartGeneration(false)) { setStatus(STATUS.BLOCKED_RETRY); return; }
+  // Button is disabled (gen-action) during generation, so no isGenerating guard needed here.
   var idx = findMessageIndexById(assistantId);
   if (idx === -1 || state.messages[idx].role !== 'assistant') return;
   var historyBefore = state.messages.slice(0, idx);

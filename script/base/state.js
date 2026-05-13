@@ -4,25 +4,27 @@
 
 (function() {
 
+/** Load config from localStorage using CONFIG_SCHEMA as single source of truth. */
 function loadConfigFromStorage() {
-  return {
-    apiKey:           localStorage.getItem(STORAGE_KEYS.apiKey) || '',
-    model:            localStorage.getItem(STORAGE_KEYS.model) || 'deepseek-v4-pro',
-    thinkingEnabled:  localStorage.getItem(STORAGE_KEYS.thinking) === 'true',
-    reasoningEffort:  localStorage.getItem(STORAGE_KEYS.reasoningEffort) || 'max',
-    temperature:      parseFloat(localStorage.getItem(STORAGE_KEYS.temperature)) || CFG.API_DEFAULT_TEMP,
-    systemPrompt:     localStorage.getItem(STORAGE_KEYS.systemPrompt) || ''
-  };
+  var config = {};
+  for (var i = 0; i < CONFIG_SCHEMA.length; i++) {
+    var item = CONFIG_SCHEMA[i];
+    var raw = localStorage.getItem(item.key);
+    if (raw !== null) {
+      config[item.prop] = item.parse ? item.parse(raw) : raw;
+    } else {
+      config[item.prop] = item.def;
+    }
+  }
+  return config;
 }
 
 function persistConfig() {
   var c = window.state.config;
-  localStorage.setItem(STORAGE_KEYS.apiKey,          c.apiKey);
-  localStorage.setItem(STORAGE_KEYS.model,           c.model);
-  localStorage.setItem(STORAGE_KEYS.thinking,        String(c.thinkingEnabled));
-  localStorage.setItem(STORAGE_KEYS.reasoningEffort, c.reasoningEffort);
-  localStorage.setItem(STORAGE_KEYS.temperature,     c.temperature);
-  localStorage.setItem(STORAGE_KEYS.systemPrompt,    c.systemPrompt);
+  for (var i = 0; i < CONFIG_SCHEMA.length; i++) {
+    var item = CONFIG_SCHEMA[i];
+    localStorage.setItem(item.key, c[item.prop]);
+  }
 }
 
 /** Central application state. Prefer using the state API methods below
@@ -43,7 +45,7 @@ var api = window.state;
 /** Add a message to the end of the list and persist. */
 api.addMessage = function(msg) {
   api.messages = api.messages.concat([msg]);
-  if (typeof window.persistMessages === 'function') window.persistMessages();
+  api._autoPersist();
   return msg;
 };
 

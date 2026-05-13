@@ -4,25 +4,9 @@
 
 (function() {
 
-var BASE_URL = 'https://api.deepseek.com/beta/chat/completions';
-
-/* ---- API helper functions ---- */
-
-function buildSystemPromptMessage() {
-  var prompt = state.config.systemPrompt;
-  return typeof prompt === 'string' && prompt.trim() ? { role: 'system', content: prompt } : null;
-}
-
 function buildApiContextThroughIndex(endIndex) {
   if (endIndex < 0) return [];
   return state.messages.slice(0, endIndex + 1).map(toApiMessage);
-}
-
-function ensureCanStartGeneration(requireApiKey) {
-  if (requireApiKey === undefined) requireApiKey = true;
-  if (state.isGenerating) return false;
-  if (requireApiKey && !state.config.apiKey) return false;
-  return true;
 }
 
 /* ---- API request builders ---- */
@@ -60,7 +44,7 @@ async function streamWithAbort(requestBody, contentCallback, reasoningCallback) 
   state.setAbortController(controller);
 
   try {
-    var resp = await fetch(BASE_URL, {
+    var resp = await fetch(CFG.API_BASE_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -102,7 +86,7 @@ async function streamWithAbort(requestBody, contentCallback, reasoningCallback) 
     }
   } catch (err) {
     if (err.name === 'AbortError') {
-      throw new Error(ERR.ABORTED);
+      throw new Error('ABORTED');
     }
     throw err;
   }
@@ -110,9 +94,7 @@ async function streamWithAbort(requestBody, contentCallback, reasoningCallback) 
 
 /* ---- Exports (pure API layer; orchestration lives in generation.js) ---- */
 
-window.buildSystemPromptMessage = buildSystemPromptMessage;
 window.buildApiContextThroughIndex = buildApiContextThroughIndex;
-window.ensureCanStartGeneration = ensureCanStartGeneration;
 window.buildRequestBody = buildRequestBody;
 window.streamWithAbort = streamWithAbort;
 

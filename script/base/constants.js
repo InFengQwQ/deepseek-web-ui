@@ -20,18 +20,17 @@ window.STATUS = {
   IDLE: '就绪',
   GENERATING: '生成中...',
   DONE: '生成完成',
-  STOPPED: '生成已停止',
-  BLOCKED: '生成中，请等待或先设置API KEY',
-  BLOCKED_RETRY: '生成中，请稍后重试',
+  STOPPED: '生成中止',
   CLEARED: '对话已清空',
   EXPORTED: '对话已导出',
-  IMPORTED: '已导入 ',
+  IMPORTED: '对话已导入',
   INSERTED: '消息已插入',
   MODIFIED: '消息已修改',
   DELETED: '消息已删除',
   SAVED: '配置已保存',
   ERROR_PREFIX: '错误: ',
-  IMPORT_ERROR_PREFIX: '导入失败: '
+  IMPORT_ERROR_PREFIX: '导入失败: ',
+  BOOTSTRAP_ERROR_PREFIX: '启动失败: '
 };
 
 /** Button / UI labels */
@@ -49,19 +48,11 @@ window.UI = {
   ROLE_ASSISTANT: 'DeepSeek',
   REASONING_TITLE: '思考过程',
   REASONING_COLLAPSED: '(已折叠)',
-  REASONING_EXPANDED: '(点击折叠)',
+  REASONING_EXPANDED: '(未折叠)',
   EMPTY_TITLE: '开始新对话',
-  EMPTY_PLACEHOLDER: '输入用户消息…'
+  EMPTY_PLACEHOLDER: '输入消息…'
 };
 
-/** Error / fallback strings */
-window.ERR = {
-  ABORTED: '用户中止',
-  EMPTY_RESPONSE: '[空响应]',
-  RENDER_FALLBACK: '[渲染错误] ',
-  IMPORT_INVALID: '无效格式',
-  IMPORT_EMPTY: '无有效消息'
-};
 
 /** Configuration constants — timers, thresholds, API params, dialogs, export. */
 window.CFG = {
@@ -75,7 +66,8 @@ window.CFG = {
   SCROLL_BOTTOM_THRESHOLD: 50,
   SCROLL_BTN_THRESHOLD: 100,
   TEXTAREA_MAX_HEIGHT: 168,
-  TEXTAREA_MIN_HEIGHT: 36
+  TEXTAREA_MIN_HEIGHT: 36,
+  API_BASE_URL: 'https://api.deepseek.com/beta/chat/completions'
 };
 
 window.ICONS = {

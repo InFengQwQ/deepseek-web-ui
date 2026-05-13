@@ -354,9 +354,6 @@ function refreshMessageDOM(msgId) {
   evaluateScrollToBottom();
 }
 
-window.createReasoningBlockDOM = createReasoningBlockDOM;
-window.isMessageStreaming = isMessageStreaming;
-window.createActionIconBtn = createActionIconBtn;
 window.syncGenButtonStates = syncGenButtonStates;
 window.renderMessageItem = renderMessageItem;
 window.createEditModeUI = createEditModeUI;

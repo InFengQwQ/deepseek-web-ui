@@ -94,25 +94,21 @@ function restorePlaceholders(html, codePlaceholders, mathPlaceholders) {
 /** Render Markdown text to sanitized HTML, with KaTeX math support. */
 function renderMarkdownToHTML(text) {
   var source = text || '';
-  try {
-    if (typeof marked === 'undefined' || typeof DOMPurify === 'undefined') {
-      return '<p>' + escapeHtml(source).replace(/\n/g, '<br>') + '</p>';
-    }
-
-    // Step 1: Protect code blocks
-    var codeResult = protectCodeBlocks(source);
-
-    // Step 2: Protect math formulas
-    var mathResult = protectMath(codeResult.text);
-
-    // Step 3: Parse remaining text as Markdown
-    var html = marked.parse(mathResult.text, { breaks: true, gfm: true });
-
-    // Step 4: Restore math + code, then sanitize
-    return restorePlaceholders(html, codeResult.placeholders, mathResult.placeholders);
-  } catch (e) {
-    return '<p style="color:#b91c1c">' + ERR.RENDER_FALLBACK + escapeHtml(String(e.message || e)) + '</p>';
+  if (typeof marked === 'undefined' || typeof DOMPurify === 'undefined') {
+    return '<p>' + escapeHtml(source).replace(/\n/g, '<br>') + '</p>';
   }
+
+  // Step 1: Protect code blocks
+  var codeResult = protectCodeBlocks(source);
+
+  // Step 2: Protect math formulas
+  var mathResult = protectMath(codeResult.text);
+
+  // Step 3: Parse remaining text as Markdown
+  var html = marked.parse(mathResult.text, { breaks: true, gfm: true });
+
+  // Step 4: Restore math + code, then sanitize
+  return restorePlaceholders(html, codeResult.placeholders, mathResult.placeholders);
 }
 
 window.renderMarkdownToHTML = renderMarkdownToHTML;
