@@ -3,33 +3,28 @@
    ================================================================ */
 
 (function() {
+var App = window.App = window.App || {};
 
 /** Load config from localStorage using CONFIG_SCHEMA as single source of truth. */
 function loadConfigFromStorage() {
   var config = {};
-  for (var i = 0; i < CONFIG_SCHEMA.length; i++) {
-    var item = CONFIG_SCHEMA[i];
+  App.forEachConfigSchemaItem(function(item) {
     var raw = localStorage.getItem(item.key);
-    if (raw !== null) {
-      config[item.prop] = item.parse ? item.parse(raw) : raw;
-    } else {
-      config[item.prop] = item.def;
-    }
-  }
+    config[item.prop] = raw !== null ? (item.parse ? item.parse(raw) : raw) : item.def;
+  });
   return config;
 }
 
 function persistConfig() {
-  var c = window.state.config;
-  for (var i = 0; i < CONFIG_SCHEMA.length; i++) {
-    var item = CONFIG_SCHEMA[i];
+  var c = App.state.config;
+  App.forEachConfigSchemaItem(function(item) {
     localStorage.setItem(item.key, c[item.prop]);
-  }
+  });
 }
 
 /** Central application state. Prefer using the state API methods below
  *  rather than mutating properties directly. */
-window.state = {
+App.state = {
   messages: [],
   nextId: 1,
   isGenerating: false,
@@ -40,7 +35,7 @@ window.state = {
 
 /* ---- State mutation API ---- */
 
-var api = window.state;
+var api = App.state;
 
 /** Add a message to the end of the list and persist. */
 api.addMessage = function(msg) {
@@ -100,12 +95,15 @@ api.setAbortController = function(ctrl) {
   api.currentAbortController = ctrl;
 };
 
-/** Explicit persistence callback — registered by messages.js after load. */
+/** Register the explicit persistence callback (called by messages.js at init). */
+api.setPersistCallback = function(fn) {
+  api._persist = fn;
+};
 api._persist = null;
 api._autoPersist = function() {
   if (typeof api._persist === 'function') api._persist();
 };
 
-window.persistConfig = persistConfig;
+App.persistConfig = persistConfig;
 
 })();

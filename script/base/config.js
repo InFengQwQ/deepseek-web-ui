@@ -4,52 +4,52 @@
    ================================================================ */
 
 (function() {
+var App = window.App = window.App || {};
 
 /* ---- System prompt modal ---- */
 
 function scrollSystemPromptToBottom() {
-  if (!DomRefs.systemPromptInput) return;
+  if (!App.DomRefs.systemPromptInput) return;
   requestAnimationFrame(function () {
-    DomRefs.systemPromptInput.scrollTop = DomRefs.systemPromptInput.scrollHeight;
+    App.DomRefs.systemPromptInput.scrollTop = App.DomRefs.systemPromptInput.scrollHeight;
   });
 }
 
 function openSystemPromptModal() {
-  if (!DomRefs.systemPromptModal || !DomRefs.systemPromptInput) return;
-  DomRefs.systemPromptInput.value = state.config.systemPrompt;
-  setHidden(DomRefs.systemPromptModal, false);
-  DomRefs.systemPromptModal.setAttribute('aria-hidden', 'false');
-  DomRefs.systemPromptInput.focus();
+  if (!App.DomRefs.systemPromptModal || !App.DomRefs.systemPromptInput) return;
+  App.DomRefs.systemPromptInput.value = App.state.config.systemPrompt;
+  App.setHidden(App.DomRefs.systemPromptModal, false);
+  App.DomRefs.systemPromptModal.setAttribute('aria-hidden', 'false');
+  App.DomRefs.systemPromptInput.focus();
   scrollSystemPromptToBottom();
 }
 
 function closeSystemPromptModal() {
-  if (!DomRefs.systemPromptModal) return;
-  setHidden(DomRefs.systemPromptModal, true);
-  DomRefs.systemPromptModal.setAttribute('aria-hidden', 'true');
+  if (!App.DomRefs.systemPromptModal) return;
+  App.setHidden(App.DomRefs.systemPromptModal, true);
+  App.DomRefs.systemPromptModal.setAttribute('aria-hidden', 'true');
 }
 
 /* ---- Thinking / temperature UI toggle ---- */
 
 function updateThinkingUI() {
-  if (!DomRefs.thinkingToggle) return;
-  var enabled = DomRefs.thinkingToggle.checked;
-  setHidden(DomRefs.effortField, !enabled);
-  setHidden(DomRefs.tempField, enabled);
+  if (!App.DomRefs.thinkingToggle) return;
+  var enabled = App.DomRefs.thinkingToggle.checked;
+  App.setHidden(App.DomRefs.effortField, !enabled);
+  App.setHidden(App.DomRefs.tempField, enabled);
 }
 
 /* ---- Config sync & save ---- */
 
 /** Iterate CONFIG_SCHEMA to sync state → UI. */
 function syncConfigToUI() {
-  for (var i = 0; i < CONFIG_SCHEMA.length; i++) {
-    var item = CONFIG_SCHEMA[i];
+  App.forEachConfigSchemaItem(function(item) {
     var el = document.getElementById(item.elId);
-    if (!el) continue;
+    if (!el) return;
     var setter = item.uiSet || function(el, v) { el.value = v; };
-    setter(el, state.config[item.prop]);
-  }
-  if (DomRefs.systemPromptModal && !DomRefs.systemPromptModal.classList.contains('u-none')) {
+    setter(el, App.state.config[item.prop]);
+  });
+  if (App.DomRefs.systemPromptModal && !App.DomRefs.systemPromptModal.classList.contains('u-none')) {
     scrollSystemPromptToBottom();
   }
   updateThinkingUI();
@@ -57,25 +57,24 @@ function syncConfigToUI() {
 
 /** Iterate CONFIG_SCHEMA to save UI → state, then persist. */
 function saveConfiguration() {
-  for (var i = 0; i < CONFIG_SCHEMA.length; i++) {
-    var item = CONFIG_SCHEMA[i];
+  App.forEachConfigSchemaItem(function(item) {
     var el = document.getElementById(item.elId);
-    if (!el) continue;
+    if (!el) return;
     var getter = item.uiGet || function(el) { return el.value; };
     var val = getter(el);
-    if (val !== null) state.config[item.prop] = val;
-  }
-  persistConfig();
+    if (val !== null) App.state.config[item.prop] = val;
+  });
+  App.persistConfig();
   closeSystemPromptModal();
-  setStatus(STATUS.SAVED, CFG.STATUS_TIMEOUT_SHORT);
+  App.setStatus(App.STATUS.SAVED, App.CFG.STATUS_TIMEOUT_SHORT);
 }
 
-window.scrollSystemPromptToBottom = scrollSystemPromptToBottom;
-window.openSystemPromptModal = openSystemPromptModal;
-window.closeSystemPromptModal = closeSystemPromptModal;
-window.updateThinkingUI = updateThinkingUI;
-window.syncConfigToUI = syncConfigToUI;
-window.saveConfiguration = saveConfiguration;
+App.scrollSystemPromptToBottom = scrollSystemPromptToBottom;
+App.openSystemPromptModal = openSystemPromptModal;
+App.closeSystemPromptModal = closeSystemPromptModal;
+App.updateThinkingUI = updateThinkingUI;
+App.syncConfigToUI = syncConfigToUI;
+App.saveConfiguration = saveConfiguration;
 
 })();
 

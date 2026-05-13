@@ -5,6 +5,7 @@
    ================================================================ */
 
 (function() {
+var App = window.App = window.App || {};
 
 /* === Item-level rendering === */
 
@@ -14,10 +15,10 @@ function createReasoningHeader(initialCollapsed) {
   var header = document.createElement('div');
   header.className = 'reasoning-header';
   var title = document.createElement('span');
-  title.innerText = UI.REASONING_TITLE;
+  title.innerText = App.UI.REASONING_TITLE;
   var stateSpan = document.createElement('span');
   stateSpan.className = 'reasoning-header-state';
-  stateSpan.innerText = initialCollapsed ? UI.REASONING_COLLAPSED : UI.REASONING_EXPANDED;
+  stateSpan.innerText = initialCollapsed ? App.UI.REASONING_COLLAPSED : App.UI.REASONING_EXPANDED;
   header.appendChild(title);
   header.appendChild(document.createTextNode(' '));
   header.appendChild(stateSpan);
@@ -30,14 +31,14 @@ function createReasoningBlockDOM(reasoningContent) {
   var hdr = createReasoningHeader(false);
   var contentDiv = document.createElement('div');
   contentDiv.className = 'reasoning-text prose-content';
-  contentDiv.innerHTML = renderMarkdownToHTML(reasoningContent);
+  contentDiv.innerHTML = App.renderMarkdownToHTML(reasoningContent);
   contentDiv.dataset.collapsed = '0';
   hdr.header.onclick = function () {
     var collapsed = contentDiv.dataset.collapsed === '1';
     collapsed = !collapsed;
     contentDiv.dataset.collapsed = collapsed ? '1' : '0';
-    setHidden(contentDiv, collapsed);
-    hdr.stateSpan.innerText = collapsed ? UI.REASONING_COLLAPSED : UI.REASONING_EXPANDED;
+    App.setHidden(contentDiv, collapsed);
+    hdr.stateSpan.innerText = collapsed ? App.UI.REASONING_COLLAPSED : App.UI.REASONING_EXPANDED;
   };
   reasoningDiv.appendChild(hdr.header);
   reasoningDiv.appendChild(contentDiv);
@@ -47,7 +48,7 @@ function createReasoningBlockDOM(reasoningContent) {
 /* ---- Helpers ---- */
 
 function isMessageStreaming(msg) {
-  return msg.id === state.activeGeneratingMessageId &&
+  return msg.id === App.state.activeGeneratingMessageId &&
     !(msg.content && msg.content.length > 0) &&
     !(msg.reasoning_content && msg.reasoning_content.length > 0);
 }
@@ -67,7 +68,7 @@ function createActionIconBtn(title, iconSvg, handler, extraClass) {
 function syncGenButtonStates() {
   var buttons = document.querySelectorAll('.action-icon-btn.gen-action');
   for (var i = 0; i < buttons.length; i++) {
-    buttons[i].disabled = state.isGenerating;
+    buttons[i].disabled = App.state.isGenerating;
   }
 }
 
@@ -79,11 +80,11 @@ function renderMessageMeta(msg) {
 
   var roleSpan = document.createElement('span');
   roleSpan.className = 'msg-role ' + msg.role;
-  roleSpan.innerText = msg.role === 'user' ? UI.ROLE_USER : UI.ROLE_ASSISTANT;
+  roleSpan.innerText = msg.role === 'user' ? App.UI.ROLE_USER : App.UI.ROLE_ASSISTANT;
 
   var timeSpan = document.createElement('span');
   timeSpan.className = 'msg-time';
-  timeSpan.innerText = formatMessageTime(msg.createdAt);
+  timeSpan.innerText = App.formatMessageTime(msg.createdAt);
 
   metaDiv.appendChild(roleSpan);
   metaDiv.appendChild(timeSpan);
@@ -112,14 +113,14 @@ function renderVersionNav(msg) {
   nextBtn.className = 'version-nav-btn';
   nextBtn.innerHTML = '&rsaquo;';
 
-  var info = getVersionInfo(msg);
+  var info = App.getVersionInfo(msg);
 
   versionLabel.innerText = (Math.min(info.current + 1, info.count)) + '/' + info.count;
   prevBtn.disabled = info.current <= 0;
   nextBtn.disabled = info.current >= info.count - 1;
 
-  prevBtn.onclick = function () { setAssistantVersion(msg, info.current - 1); };
-  nextBtn.onclick = function () { setAssistantVersion(msg, info.current + 1); };
+  prevBtn.onclick = function () { App.setAssistantVersion(msg, info.current - 1); };
+  nextBtn.onclick = function () { App.setAssistantVersion(msg, info.current + 1); };
 
   versionNav.appendChild(prevBtn);
   versionNav.appendChild(versionLabel);
@@ -132,27 +133,27 @@ function renderMessageActions(msg, contentDiv) {
   var actionsDiv = document.createElement('div');
   actionsDiv.className = 'msg-actions';
 
-  actionsDiv.appendChild(createActionIconBtn(UI.ACTION_INSERT, ICONS.insert, function () { insertUserMessageAfter(msg.id); }));
-  actionsDiv.appendChild(createActionIconBtn(UI.ACTION_EDIT, ICONS.edit, function () { editMessage(msg.id, contentDiv, actionsDiv); }));
-  actionsDiv.appendChild(createActionIconBtn(UI.ACTION_DELETE, ICONS.delete, function () { deleteMessage(msg.id); }));
+  actionsDiv.appendChild(createActionIconBtn(App.UI.ACTION_INSERT, App.ICONS.insert, function () { App.insertUserMessageAfter(msg.id); }));
+  actionsDiv.appendChild(createActionIconBtn(App.UI.ACTION_EDIT, App.ICONS.edit, function () { App.editMessage(msg.id, contentDiv, actionsDiv); }));
+  actionsDiv.appendChild(createActionIconBtn(App.UI.ACTION_DELETE, App.ICONS.delete, function () { App.deleteMessage(msg.id); }));
 
   var sep1 = document.createElement('span');
   sep1.className = 'action-sep';
   actionsDiv.appendChild(sep1);
 
-  var genBtn = createActionIconBtn(UI.ACTION_GENERATE, ICONS.generate, function () { generateNewResponse(msg.id); }, 'gen-action');
-  genBtn.disabled = state.isGenerating;
+  var genBtn = createActionIconBtn(App.UI.ACTION_GENERATE, App.ICONS.generate, function () { App.generateNewResponse(msg.id).catch(function(e) { App.errorStatus(e.message); }); }, 'gen-action');
+  genBtn.disabled = App.state.isGenerating;
   actionsDiv.appendChild(genBtn);
 
   if (msg.role === 'assistant') {
     var sep2 = document.createElement('span');
     sep2.className = 'action-sep';
     actionsDiv.appendChild(sep2);
-    var prefixBtn = createActionIconBtn(UI.ACTION_PREFIX, ICONS.prefix, function () { prefixCompletion(msg.id); }, 'gen-action');
-    prefixBtn.disabled = state.isGenerating;
+    var prefixBtn = createActionIconBtn(App.UI.ACTION_PREFIX, App.ICONS.prefix, function () { App.prefixCompletion(msg.id).catch(function(e) { App.errorStatus(e.message); }); }, 'gen-action');
+    prefixBtn.disabled = App.state.isGenerating;
     actionsDiv.appendChild(prefixBtn);
-    var regenBtn = createActionIconBtn(UI.ACTION_REGENERATE, ICONS.regenerate, function () { regenerateAssistant(msg.id); }, 'gen-action');
-    regenBtn.disabled = state.isGenerating;
+    var regenBtn = createActionIconBtn(App.UI.ACTION_REGENERATE, App.ICONS.regenerate, function () { App.regenerateAssistant(msg.id).catch(function(e) { App.errorStatus(e.message); }); }, 'gen-action');
+    regenBtn.disabled = App.state.isGenerating;
     actionsDiv.appendChild(regenBtn);
   }
 
@@ -177,13 +178,13 @@ function renderMessageItem(msg) {
   if (isMessageStreaming(msg)) {
     contentDiv.innerHTML = '<span class="typing-indicator"></span>';
   } else {
-    contentDiv.innerHTML = renderMarkdownToHTML(msg.content);
+    contentDiv.innerHTML = App.renderMarkdownToHTML(msg.content);
   }
 
   msgDiv.appendChild(contentDiv);
 
   var actionsDiv = renderMessageActions(msg, contentDiv);
-  setHidden(actionsDiv, msg.id === state.activeGeneratingMessageId);
+  App.setHidden(actionsDiv, msg.id === App.state.activeGeneratingMessageId);
   msgDiv.appendChild(actionsDiv);
 
   return { msgDiv: msgDiv, contentDiv: contentDiv, actionsDiv: actionsDiv };
@@ -199,11 +200,11 @@ function createEditModeUI(msg, contentDiv, actionsDiv) {
 
   var saveBtn = document.createElement('button');
   saveBtn.className = 'small primary message-edit-save';
-  saveBtn.innerText = UI.BTN_SAVE;
+  saveBtn.innerText = App.UI.BTN_SAVE;
 
   var cancelBtn = document.createElement('button');
   cancelBtn.className = 'small';
-  cancelBtn.innerText = UI.BTN_CANCEL;
+  cancelBtn.innerText = App.UI.BTN_CANCEL;
 
   var editActions = document.createElement('div');
   editActions.className = 'message-edit-actions';
@@ -214,7 +215,7 @@ function createEditModeUI(msg, contentDiv, actionsDiv) {
   contentDiv.appendChild(textarea);
   contentDiv.appendChild(editActions);
 
-  autoResizeTextarea(textarea);
+  App.autoResizeTextarea(textarea);
 
   if (actionsDiv) actionsDiv.style.opacity = '0';
   textarea.focus();
@@ -223,7 +224,7 @@ function createEditModeUI(msg, contentDiv, actionsDiv) {
 }
 
 function renderEmptyState() {
-  var container = DomRefs.chatContainer;
+  var container = App.DomRefs.chatContainer;
   container.innerHTML = '';
 
   var emptyState = document.createElement('div');
@@ -231,7 +232,7 @@ function renderEmptyState() {
 
   var title = document.createElement('div');
   title.className = 'empty-state-title';
-  title.innerText = UI.EMPTY_TITLE;
+  title.innerText = App.UI.EMPTY_TITLE;
 
   var inputRow = document.createElement('div');
   inputRow.className = 'empty-input-row';
@@ -248,19 +249,19 @@ function renderEmptyState() {
 
   var textarea = document.createElement('textarea');
   textarea.id = 'emptyInput';
-  textarea.placeholder = UI.EMPTY_PLACEHOLDER;
+  textarea.placeholder = App.UI.EMPTY_PLACEHOLDER;
   textarea.rows = 1;
   textarea.autofocus = true;
 
   var sendBtn = document.createElement('button');
   sendBtn.id = 'emptySendBtn';
   sendBtn.className = 'primary';
-  sendBtn.innerText = UI.BTN_SEND;
+  sendBtn.innerText = App.UI.BTN_SEND;
 
   sendBtn.onclick = function () {
     if (!textarea.value.trim()) return;
-    addUserMessage(textarea.value);
-    renderMessages();
+    App.addUserMessage(textarea.value);
+    App.renderMessages();
   };
 
   inputShell.appendChild(textarea);
@@ -272,95 +273,101 @@ function renderEmptyState() {
   emptyState.appendChild(inputRow);
   container.appendChild(emptyState);
 
-  autoResizeTextarea(textarea, { minHeight: CFG.TEXTAREA_MIN_HEIGHT, maxHeight: CFG.TEXTAREA_MAX_HEIGHT, clampOverflow: true });
+  App.autoResizeTextarea(textarea, { minHeight: App.CFG.TEXTAREA_MIN_HEIGHT, maxHeight: App.CFG.TEXTAREA_MAX_HEIGHT, clampOverflow: true });
 }
 
 /* ---- Main render entry point ---- */
 
 function renderMessages() {
-  if (!DomRefs.chatContainer) return;
+  if (!App.DomRefs.chatContainer) return;
 
-  if (state.messages.length === 0) {
+  if (App.state.messages.length === 0) {
     renderEmptyState();
     return;
   }
 
-  preserveScrollPosition(DomRefs.chatContainer, function () {
-    DomRefs.chatContainer.innerHTML = '';
-    state.messages.forEach(function (msg) {
+  App.preserveScrollPosition(App.DomRefs.chatContainer, function () {
+    App.DomRefs.chatContainer.innerHTML = '';
+    App.state.messages.forEach(function (msg) {
       var parts = renderMessageItem(msg);
-      DomRefs.chatContainer.appendChild(parts.msgDiv);
+      App.DomRefs.chatContainer.appendChild(parts.msgDiv);
     });
   });
 
-  evaluateScrollToBottom();
+  App.evaluateScrollToBottom();
 }
 
 /* ---- Incremental update (called during streaming) ---- */
 
-function updateSingleMessageDOM(msgId) {
-  var msg = findMessageById(msgId);
-  if (!msg || !DomRefs.chatContainer) return;
+function upsertReasoningBlock(msgDiv, msg) {
+  if (msg.role !== 'assistant' || !msg.reasoning_content || !msg.reasoning_content.trim()) return;
+  var reasoningDiv = msgDiv.querySelector('.reasoning-block');
+  if (!reasoningDiv) {
+    reasoningDiv = createReasoningBlockDOM(msg.reasoning_content);
+    var existingContent = msgDiv.querySelector('.msg-content');
+    msgDiv.insertBefore(reasoningDiv, existingContent);
+  } else {
+    var textDiv = reasoningDiv.querySelector('.reasoning-text');
+    if (textDiv) textDiv.innerHTML = App.renderMarkdownToHTML(msg.reasoning_content);
+  }
+}
 
-  var msgDiv = getMessageElement(msgId);
+function updateContentHtml(msgDiv, msg) {
+  var contentDiv = msgDiv.querySelector('.msg-content');
+  if (!contentDiv || contentDiv.querySelector('textarea')) return;
+  contentDiv.innerHTML = isMessageStreaming(msg)
+    ? '<span class="typing-indicator"></span>'
+    : App.renderMarkdownToHTML(msg.content);
+}
+
+function syncActionsVisibility(msgDiv, msg) {
+  var actionsDiv = msgDiv.querySelector('.msg-actions');
+  if (actionsDiv) {
+    App.setHidden(actionsDiv, msg.id === App.state.activeGeneratingMessageId);
+  }
+}
+
+function updateSingleMessageDOM(msgId) {
+  var msg = App.findMessageById(msgId);
+  if (!msg || !App.DomRefs.chatContainer) return;
+
+  var msgDiv = App.getMessageElement(msgId);
   if (!msgDiv) {
-    refreshMessageDOM(msgId);
+    App.refreshMessageDOM(msgId);
     return;
   }
 
-  preserveScrollPosition(DomRefs.chatContainer, function () {
-    if (msg.role === 'assistant' && msg.reasoning_content && msg.reasoning_content.trim()) {
-      var reasoningDiv = msgDiv.querySelector('.reasoning-block');
-      if (!reasoningDiv) {
-        reasoningDiv = createReasoningBlockDOM(msg.reasoning_content);
-        var existingContent = msgDiv.querySelector('.msg-content');
-        msgDiv.insertBefore(reasoningDiv, existingContent);
-      } else {
-        var textDiv = reasoningDiv.querySelector('.reasoning-text');
-        if (textDiv) textDiv.innerHTML = renderMarkdownToHTML(msg.reasoning_content);
-      }
-    }
-
-    var contentDiv = msgDiv.querySelector('.msg-content');
-    if (contentDiv && !contentDiv.querySelector('textarea')) {
-      if (isMessageStreaming(msg)) {
-        contentDiv.innerHTML = '<span class="typing-indicator"></span>';
-      } else {
-        contentDiv.innerHTML = renderMarkdownToHTML(msg.content);
-      }
-    }
-
-    var actionsDiv = msgDiv.querySelector('.msg-actions');
-    if (actionsDiv) {
-      setHidden(actionsDiv, msg.id === state.activeGeneratingMessageId);
-    }
+  App.preserveScrollPosition(App.DomRefs.chatContainer, function () {
+    upsertReasoningBlock(msgDiv, msg);
+    updateContentHtml(msgDiv, msg);
+    syncActionsVisibility(msgDiv, msg);
   });
 
-  evaluateScrollToBottom();
+  App.evaluateScrollToBottom();
 }
 
 /** Replace a single message's DOM element with a fresh render from state. */
 function refreshMessageDOM(msgId) {
-  var msg = findMessageById(msgId);
+  var msg = App.findMessageById(msgId);
   if (!msg) return;
-  var oldDiv = getMessageElement(msgId);
+  var oldDiv = App.getMessageElement(msgId);
   if (!oldDiv) {
-    if (state.messages.length === 0) renderEmptyState();
-    else renderMessages();
+    if (App.state.messages.length === 0) renderEmptyState();
+    else App.renderMessages();
     return;
   }
   var parts = renderMessageItem(msg);
   oldDiv.parentNode.replaceChild(parts.msgDiv, oldDiv);
-  evaluateScrollToBottom();
+  App.evaluateScrollToBottom();
 }
 
-window.syncGenButtonStates = syncGenButtonStates;
-window.renderMessageItem = renderMessageItem;
-window.createEditModeUI = createEditModeUI;
-window.renderMessages = renderMessages;
-window.updateSingleMessageDOM = updateSingleMessageDOM;
-window.refreshMessageDOM = refreshMessageDOM;
-window.renderEmptyState = renderEmptyState;
+App.syncGenButtonStates = syncGenButtonStates;
+App.renderMessageItem = renderMessageItem;
+App.createEditModeUI = createEditModeUI;
+App.renderMessages = renderMessages;
+App.updateSingleMessageDOM = updateSingleMessageDOM;
+App.refreshMessageDOM = refreshMessageDOM;
+App.renderEmptyState = renderEmptyState;
 
 })();
 

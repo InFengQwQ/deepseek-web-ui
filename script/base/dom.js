@@ -3,8 +3,9 @@
    ================================================================ */
 
 (function() {
+var App = window.App = window.App || {};
 
-window.DomRefs = {
+App.DomRefs = {
   chatContainer: null,
   statusSpan: null,
   stopBtn: null,
@@ -25,6 +26,8 @@ window.DomRefs = {
   exportBtn: null,
   importBtn: null
 };
+
+var DomRefs = App.DomRefs;
 
 /** Get a message DOM element by its data-id. Returns null if not found. */
 function getMessageElement(msgId) {
@@ -54,7 +57,7 @@ function initDomRefs() {
   return DomRefs;
 }
 
-window.initDomRefs = initDomRefs;
-window.getMessageElement = getMessageElement;
+App.initDomRefs = initDomRefs;
+App.getMessageElement = getMessageElement;
 
 })();

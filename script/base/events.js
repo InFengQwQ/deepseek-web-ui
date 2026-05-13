@@ -4,62 +4,63 @@
    ================================================================ */
 
 (function() {
+var App = window.App = window.App || {};
 
 function bindAllEvents() {
   /* ---- Config controls ---- */
-  DomRefs.thinkingToggle.addEventListener('change', updateThinkingUI);
-  DomRefs.systemPromptInput.addEventListener('input', scrollSystemPromptToBottom);
-  DomRefs.systemPromptBtn.onclick = openSystemPromptModal;
-  DomRefs.systemPromptCloseBtn.onclick = closeSystemPromptModal;
+  App.DomRefs.thinkingToggle.addEventListener('change', App.updateThinkingUI);
+  App.DomRefs.systemPromptInput.addEventListener('input', App.scrollSystemPromptToBottom);
+  App.DomRefs.systemPromptBtn.onclick = App.openSystemPromptModal;
+  App.DomRefs.systemPromptCloseBtn.onclick = App.closeSystemPromptModal;
   document.addEventListener('keydown', function (event) {
-    if (event.key === 'Escape' && !DomRefs.systemPromptModal.classList.contains('u-none')) {
-      closeSystemPromptModal();
+    if (event.key === 'Escape' && !App.DomRefs.systemPromptModal.classList.contains('u-none')) {
+      App.closeSystemPromptModal();
     }
   });
-  DomRefs.saveBtn.onclick = saveConfiguration;
+  App.DomRefs.saveBtn.onclick = App.saveConfiguration;
 
   /* ---- Chat action buttons ---- */
-  DomRefs.clearBtn.onclick = clearAllMessages;
-  DomRefs.exportBtn.onclick = exportConversation;
-  DomRefs.importBtn.onclick = function () {
+  App.DomRefs.clearBtn.onclick = App.clearAllMessages;
+  App.DomRefs.exportBtn.onclick = App.exportConversation;
+  App.DomRefs.importBtn.onclick = function () {
     var input = document.createElement('input');
     input.type = 'file';
     input.accept = '.json';
-    input.onchange = function (e) { if (e.target.files[0]) importConversation(e.target.files[0]); };
+    input.onchange = function (e) { if (e.target.files[0]) App.importConversation(e.target.files[0]); };
     input.click();
   };
-  DomRefs.stopBtn.onclick = stopGeneration;
+  App.DomRefs.stopBtn.onclick = App.stopGeneration;
 
   /* ---- Scroll ---- */
   var scrollTicking = false;
-  DomRefs.chatContainer.addEventListener('scroll', function () {
+  App.DomRefs.chatContainer.addEventListener('scroll', function () {
     if (!scrollTicking) {
       requestAnimationFrame(function () {
-        evaluateScrollToBottom();
+        App.evaluateScrollToBottom();
         scrollTicking = false;
       });
       scrollTicking = true;
     }
   });
-  DomRefs.scrollToBottomBtn.onclick = function () {
-    DomRefs.chatContainer.scrollTop = DomRefs.chatContainer.scrollHeight;
+  App.DomRefs.scrollToBottomBtn.onclick = function () {
+    App.DomRefs.chatContainer.scrollTop = App.DomRefs.chatContainer.scrollHeight;
   };
 }
 
-window.bindAllEvents = bindAllEvents;
+App.bindAllEvents = bindAllEvents;
 
 /* ---- Bootstrap (merged from app.js) ---- */
 
 function bootstrapApp() {
   try {
-    initDomRefs();
-    loadMessagesFromStorage();
-    syncConfigToUI();
-    renderMessages();
+    App.initDomRefs();
+    App.loadMessagesFromStorage();
+    App.syncConfigToUI();
+    App.renderMessages();
     bindAllEvents();
   } catch (e) {
     console.error('Bootstrap failed:', e);
-    if (DomRefs.statusSpan) DomRefs.statusSpan.innerText = STATUS.BOOTSTRAP_ERROR_PREFIX + (e.message || e);
+    if (App.DomRefs.statusSpan) App.DomRefs.statusSpan.innerText = App.STATUS.BOOTSTRAP_ERROR_PREFIX + (e.message || e);
   }
 }
 

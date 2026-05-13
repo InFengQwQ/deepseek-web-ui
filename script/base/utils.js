@@ -4,6 +4,7 @@
    ================================================================ */
 
 (function() {
+var App = window.App = window.App || {};
 
 /** Toggle the `u-none` CSS class on an element. */
 function setHidden(element, hidden) {
@@ -14,15 +15,20 @@ function setHidden(element, hidden) {
 /* Set status bar text, optionally reset after N ms. */
 function setStatus(text, resetAfterMs) {
   if (resetAfterMs === undefined) resetAfterMs = 0;
-  if (!DomRefs.statusSpan) return;
-  DomRefs.statusSpan.innerText = text;
+  if (!App.DomRefs.statusSpan) return;
+  App.DomRefs.statusSpan.innerText = text;
   if (resetAfterMs > 0) {
     setTimeout(function () {
-      if (DomRefs.statusSpan && DomRefs.statusSpan.innerText === text) {
-        DomRefs.statusSpan.innerText = STATUS.IDLE;
+      if (App.DomRefs.statusSpan && App.DomRefs.statusSpan.innerText === text) {
+        App.DomRefs.statusSpan.innerText = App.STATUS.IDLE;
       }
     }, resetAfterMs);
   }
+}
+
+/** Convenience: set status to an error message with the standard prefix. */
+function errorStatus(message) {
+  setStatus(App.STATUS.ERROR_PREFIX + message);
 }
 
 /* Format a message timestamp to HH:MM. */
@@ -68,7 +74,7 @@ function autoResizeTextarea(textarea, options) {
 /* ---- Scroll helpers ---- */
 
 function preserveScrollPosition(container, fn) {
-  var isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < CFG.SCROLL_BOTTOM_THRESHOLD;
+  var isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < App.CFG.SCROLL_BOTTOM_THRESHOLD;
   var previousScrollTop = container.scrollTop;
   fn();
   if (isAtBottom) {
@@ -79,22 +85,23 @@ function preserveScrollPosition(container, fn) {
 }
 
 function evaluateScrollToBottom() {
-  var c = DomRefs.chatContainer;
-  var b = DomRefs.scrollToBottomBtn;
+  var c = App.DomRefs.chatContainer;
+  var b = App.DomRefs.scrollToBottomBtn;
   if (!c || !b) return;
   var distanceFromBottom = c.scrollHeight - c.scrollTop - c.clientHeight;
-  if (distanceFromBottom > CFG.SCROLL_BTN_THRESHOLD) {
+  if (distanceFromBottom > App.CFG.SCROLL_BTN_THRESHOLD) {
     b.classList.remove('is-invisible');
   } else {
     b.classList.add('is-invisible');
   }
 }
 
-window.setHidden = setHidden;
-window.setStatus = setStatus;
-window.formatMessageTime = formatMessageTime;
-window.autoResizeTextarea = autoResizeTextarea;
-window.preserveScrollPosition = preserveScrollPosition;
-window.evaluateScrollToBottom = evaluateScrollToBottom;
+App.setHidden = setHidden;
+App.setStatus = setStatus;
+App.errorStatus = errorStatus;
+App.formatMessageTime = formatMessageTime;
+App.autoResizeTextarea = autoResizeTextarea;
+App.preserveScrollPosition = preserveScrollPosition;
+App.evaluateScrollToBottom = evaluateScrollToBottom;
 
 })();

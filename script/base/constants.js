@@ -3,9 +3,10 @@
    ================================================================ */
 
 (function() {
+var App = window.App = window.App || {};
 
 /* ---- Storage keys ---- */
-window.STORAGE_KEYS = {
+App.STORAGE_KEYS = {
   apiKey: 'ds_api_key',
   model: 'ds_model',
   thinking: 'ds_thinking',
@@ -16,7 +17,7 @@ window.STORAGE_KEYS = {
 };
 
 /** Status bar messages */
-window.STATUS = {
+App.STATUS = {
   IDLE: '就绪',
   GENERATING: '生成中...',
   DONE: '生成完成',
@@ -34,7 +35,7 @@ window.STATUS = {
 };
 
 /** Button / UI labels */
-window.UI = {
+App.UI = {
   BTN_SAVE: '保存',
   BTN_CANCEL: '取消',
   BTN_SEND: '发送',
@@ -55,7 +56,7 @@ window.UI = {
 
 
 /** Configuration constants — timers, thresholds, API params, dialogs, export. */
-window.CFG = {
+App.CFG = {
   DIALOG_CONFIRM_CLEAR: '清空对话？',
   EXPORT_FILENAME_PREFIX: 'deepseek_chat_',
   EXPORT_EXT: '.json',
@@ -70,7 +71,7 @@ window.CFG = {
   API_BASE_URL: 'https://api.deepseek.com/beta/chat/completions'
 };
 
-window.ICONS = {
+App.ICONS = {
   insert: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>',
   edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>',
   delete: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>',
@@ -80,13 +81,20 @@ window.ICONS = {
 };
 
 /** Single source of truth: config property → storage key, default, UI element, uiGet/uiSet. */
-window.CONFIG_SCHEMA = [
-  { prop: 'apiKey',           key: STORAGE_KEYS.apiKey,           def: '',                    parse: null,  elId: 'apiKeyInput',        uiGet: function(el) { return el.value.trim(); } },
-  { prop: 'model',            key: STORAGE_KEYS.model,            def: 'deepseek-v4-pro',     parse: null,  elId: 'modelSelect' },
-  { prop: 'thinkingEnabled',  key: STORAGE_KEYS.thinking,         def: false,                  parse: function(v) { return v === 'true'; },  elId: 'thinkingToggle',  uiGet: function(el) { return el.checked; }, uiSet: function(el, v) { el.checked = v; } },
-  { prop: 'reasoningEffort',  key: STORAGE_KEYS.reasoningEffort,  def: 'max',                  parse: null,  elId: 'effortSelect' },
-  { prop: 'temperature',      key: STORAGE_KEYS.temperature,      def: CFG.API_DEFAULT_TEMP,   parse: parseFloat,  elId: 'tempInput',          uiGet: function(el) { var v = parseFloat(el.value); return isNaN(v) ? null : v; } },
-  { prop: 'systemPrompt',     key: STORAGE_KEYS.systemPrompt,     def: '',                    parse: null,  elId: 'systemPromptInput' }
+/** Iterate every CONFIG_SCHEMA entry with a callback(item). */
+App.forEachConfigSchemaItem = function(fn) {
+  for (var i = 0; i < App.CONFIG_SCHEMA.length; i++) {
+    fn(App.CONFIG_SCHEMA[i]);
+  }
+};
+
+App.CONFIG_SCHEMA = [
+  { prop: 'apiKey',           key: App.STORAGE_KEYS.apiKey,           def: '',                    parse: null,  elId: 'apiKeyInput',        uiGet: function(el) { return el.value.trim(); } },
+  { prop: 'model',            key: App.STORAGE_KEYS.model,            def: 'deepseek-v4-pro',     parse: null,  elId: 'modelSelect' },
+  { prop: 'thinkingEnabled',  key: App.STORAGE_KEYS.thinking,         def: false,                  parse: function(v) { return v === 'true'; },  elId: 'thinkingToggle',  uiGet: function(el) { return el.checked; }, uiSet: function(el, v) { el.checked = v; } },
+  { prop: 'reasoningEffort',  key: App.STORAGE_KEYS.reasoningEffort,  def: 'max',                  parse: null,  elId: 'effortSelect' },
+  { prop: 'temperature',      key: App.STORAGE_KEYS.temperature,      def: App.CFG.API_DEFAULT_TEMP,   parse: parseFloat,  elId: 'tempInput',          uiGet: function(el) { var v = parseFloat(el.value); return isNaN(v) ? null : v; } },
+  { prop: 'systemPrompt',     key: App.STORAGE_KEYS.systemPrompt,     def: '',                    parse: null,  elId: 'systemPromptInput' }
 ];
 
 })();

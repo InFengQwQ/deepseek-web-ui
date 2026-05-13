@@ -4,6 +4,7 @@
    ================================================================ */
 
 (function() {
+var App = window.App = window.App || {};
 
 /** Sanitize core message fields with type-safe defaults. */
 function sanitizeMessageFields(source) {
@@ -29,7 +30,7 @@ function messageCoreFields(msg) {
 function serializeMessageRecord(msg) {
   var record = messageCoreFields(msg);
   if (msg.role === 'assistant') {
-    if (Array.isArray(msg.versions)) record.versions = msg.versions.map(cloneVersionEntry);
+    if (Array.isArray(msg.versions)) record.versions = msg.versions.map(App.cloneVersionEntry);
     if (Number.isInteger(msg.currentVersionIndex)) record.currentVersionIndex = msg.currentVersionIndex;
   }
   return record;
@@ -40,7 +41,7 @@ function createMessage(role, content, options) {
   if (options === undefined) options = {};
   var fields = sanitizeMessageFields({ role: role, content: content, reasoning_content: options.reasoning_content, createdAt: options.createdAt });
   return {
-    id: Number.isFinite(options.id) ? options.id : state.nextId++,
+    id: Number.isFinite(options.id) ? options.id : App.state.nextId++,
     role: fields.role,
     content: fields.content,
     reasoning_content: fields.reasoning_content,
@@ -50,11 +51,11 @@ function createMessage(role, content, options) {
 }
 
 function findMessageById(messageId) {
-  return state.messages.find(function (m) { return m.id === messageId; }) || null;
+  return App.state.messages.find(function (m) { return m.id === messageId; }) || null;
 }
 
 function findMessageIndexById(messageId) {
-  return state.messages.findIndex(function (m) { return m.id === messageId; });
+  return App.state.messages.findIndex(function (m) { return m.id === messageId; });
 }
 
 function toApiMessage(msg) {
@@ -64,25 +65,25 @@ function toApiMessage(msg) {
 /* ---- localStorage persistence ---- */
 
 function persistMessages() {
-  var toStore = state.messages.map(function (m) {
+  var toStore = App.state.messages.map(function (m) {
     var record = serializeMessageRecord(m);
     record.id = m.id;
     return record;
   });
-  localStorage.setItem(STORAGE_KEYS.messages, JSON.stringify(toStore));
+  localStorage.setItem(App.STORAGE_KEYS.messages, JSON.stringify(toStore));
 }
 
 function loadMessagesFromStorage() {
-  var stored = localStorage.getItem(STORAGE_KEYS.messages);
+  var stored = localStorage.getItem(App.STORAGE_KEYS.messages);
   if (!stored) return;
   try {
     var parsed = JSON.parse(stored);
     var normalized = parsed.map(normalizeMessageRecord).filter(function (m) { return m && (m.role === 'user' || m.role === 'assistant'); });
-    state.replaceMessages(normalized);
-    var maxId = state.messages.length > 0 ? Math.max.apply(null, state.messages.map(function (m) { return Number.isFinite(m.id) ? m.id : 0; })) : 0;
-    state.nextId = Math.max(1, maxId + 1);
+    App.state.replaceMessages(normalized);
+    var maxId = App.state.messages.length > 0 ? Math.max.apply(null, App.state.messages.map(function (m) { return Number.isFinite(m.id) ? m.id : 0; })) : 0;
+    App.state.nextId = Math.max(1, maxId + 1);
   } catch (e) {
-    state.clearMessages();
+    App.state.clearMessages();
   }
 }
 
@@ -92,32 +93,32 @@ function normalizeMessageRecord(msg) {
   normalized.id = msg.id;
   if (normalized.role === 'assistant') {
     var rawVersions = Array.isArray(msg.versions) && msg.versions.length > 0 ? msg.versions : [normalized];
-    normalized.versions = rawVersions.map(cloneVersionEntry);
+    normalized.versions = rawVersions.map(App.cloneVersionEntry);
     var candidateIndex = Number.isInteger(msg.currentVersionIndex) ? msg.currentVersionIndex : normalized.versions.length - 1;
     normalized.currentVersionIndex = Math.min(Math.max(candidateIndex, 0), normalized.versions.length - 1);
-    applyCurrentVersion(normalized);
+    App.applyCurrentVersion(normalized);
   }
   return normalized;
 }
 function addUserMessage(content) {
   var msg = createMessage('user', content);
-  state.addMessage(msg);
+  App.state.addMessage(msg);
   return msg;
 }
 
-window.serializeMessageRecord = serializeMessageRecord;
-window.createMessage = createMessage;
-window.findMessageById = findMessageById;
-window.findMessageIndexById = findMessageIndexById;
-window.toApiMessage = toApiMessage;
-window.persistMessages = persistMessages;
-window.loadMessagesFromStorage = loadMessagesFromStorage;
-window.normalizeMessageRecord = normalizeMessageRecord;
-window.addUserMessage = addUserMessage;
+App.serializeMessageRecord = serializeMessageRecord;
+App.createMessage = createMessage;
+App.findMessageById = findMessageById;
+App.findMessageIndexById = findMessageIndexById;
+App.toApiMessage = toApiMessage;
+App.persistMessages = persistMessages;
+App.loadMessagesFromStorage = loadMessagesFromStorage;
+App.normalizeMessageRecord = normalizeMessageRecord;
+App.addUserMessage = addUserMessage;
 
-// Register explicit persistence callback (replaces lazy typeof check in state._autoPersist)
-if (window.state && window.state._autoPersist) {
-  window.state._persist = persistMessages;
+// Register explicit persistence callback via state API
+if (App.state && typeof App.state.setPersistCallback === 'function') {
+  App.state.setPersistCallback(persistMessages);
 }
 
 })();

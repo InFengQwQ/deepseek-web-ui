@@ -3,10 +3,11 @@
    ================================================================ */
 
 (function() {
+var App = window.App = window.App || {};
 
 function buildApiContextThroughIndex(endIndex) {
   if (endIndex < 0) return [];
-  return state.messages.slice(0, endIndex + 1).map(toApiMessage);
+  return App.state.messages.slice(0, endIndex + 1).map(App.toApiMessage);
 }
 
 /* ---- API request builders ---- */
@@ -14,17 +15,17 @@ function buildApiContextThroughIndex(endIndex) {
 function buildRequestBody(messagesArray, useThinking, options) {
   if (options === undefined) options = {};
   if (options.extra === undefined) options.extra = {};
-  var model = options.model || state.config.model;
-  var systemPrompt = options.systemPrompt !== undefined ? options.systemPrompt : state.config.systemPrompt;
-  var reasoningEffort = options.reasoningEffort || state.config.reasoningEffort;
-  var temperature = options.temperature !== undefined ? options.temperature : state.config.temperature;
+  var model = options.model || App.state.config.model;
+  var systemPrompt = options.systemPrompt !== undefined ? options.systemPrompt : App.state.config.systemPrompt;
+  var reasoningEffort = options.reasoningEffort || App.state.config.reasoningEffort;
+  var temperature = options.temperature !== undefined ? options.temperature : App.state.config.temperature;
 
   var systemMessage = typeof systemPrompt === 'string' && systemPrompt.trim() ? { role: 'system', content: systemPrompt } : null;
   var messages = systemMessage ? [systemMessage].concat(messagesArray) : messagesArray;
   var body = {
     model: model,
     messages: messages,
-    max_tokens: CFG.API_MAX_TOKENS,
+    max_tokens: App.CFG.API_MAX_TOKENS,
     stream: true
   };
   if (useThinking) {
@@ -41,14 +42,14 @@ function buildRequestBody(messagesArray, useThinking, options) {
 /** Pure fetch + SSE streaming. No DOM or UI state side effects. */
 async function streamWithAbort(requestBody, contentCallback, reasoningCallback) {
   var controller = new AbortController();
-  state.setAbortController(controller);
+  App.state.setAbortController(controller);
 
   try {
-    var resp = await fetch(CFG.API_BASE_URL, {
+    var resp = await fetch(App.CFG.API_BASE_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${state.config.apiKey}`
+        'Authorization': `Bearer ${App.state.config.apiKey}`
       },
       body: JSON.stringify(requestBody),
       signal: controller.signal
@@ -94,9 +95,9 @@ async function streamWithAbort(requestBody, contentCallback, reasoningCallback) 
 
 /* ---- Exports (pure API layer; orchestration lives in generation.js) ---- */
 
-window.buildApiContextThroughIndex = buildApiContextThroughIndex;
-window.buildRequestBody = buildRequestBody;
-window.streamWithAbort = streamWithAbort;
+App.buildApiContextThroughIndex = buildApiContextThroughIndex;
+App.buildRequestBody = buildRequestBody;
+App.streamWithAbort = streamWithAbort;
 
 })();
 

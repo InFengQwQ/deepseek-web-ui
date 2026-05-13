@@ -3,6 +3,7 @@
    ================================================================ */
 
 (function() {
+var App = window.App = window.App || {};
 
 /** Extract count & current index from a message's version state. */
 function getVersionInfo(msg) {
@@ -54,15 +55,15 @@ function setAssistantVersion(msg, versionIndex) {
   if (!msg || msg.role !== 'assistant') return;
   msg.currentVersionIndex = versionIndex;
   applyCurrentVersion(msg);
-  persistMessages();
-  refreshMessageDOM(msg.id);
+  App.persistMessages();
+  App.refreshMessageDOM(msg.id);
 }
 
 /** Mutate a specific version of a message (pure data, no DOM).
  *  If the target version is the current one, syncs content/reasoning to msg root.
  *  Returns true if mutation was applied. */
 function mutateVersion(msgId, versionIndex, updater) {
-  var msg = findMessageById(msgId);
+  var msg = App.findMessageById(msgId);
   if (!msg) return false;
   var targetVersion = versionIndex !== null ? getAssistantVersion(msg, versionIndex) : null;
   if (!targetVersion) return false;
@@ -74,12 +75,12 @@ function mutateVersion(msgId, versionIndex, updater) {
   return true;
 }
 
-window.getVersionInfo = getVersionInfo;
-window.cloneVersionEntry = cloneVersionEntry;
-window.applyCurrentVersion = applyCurrentVersion;
-window.getAssistantVersion = getAssistantVersion;
-window.appendAssistantVersion = appendAssistantVersion;
-window.setAssistantVersion = setAssistantVersion;
-window.mutateVersion = mutateVersion;
+App.getVersionInfo = getVersionInfo;
+App.cloneVersionEntry = cloneVersionEntry;
+App.applyCurrentVersion = applyCurrentVersion;
+App.getAssistantVersion = getAssistantVersion;
+App.appendAssistantVersion = appendAssistantVersion;
+App.setAssistantVersion = setAssistantVersion;
+App.mutateVersion = mutateVersion;
 
 })();

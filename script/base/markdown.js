@@ -4,6 +4,7 @@
    ================================================================ */
 
 (function() {
+var App = window.App = window.App || {};
 
 /** Escape HTML special characters in a string. */
 function escapeHtml(input) {
@@ -46,36 +47,41 @@ function protectMath(text) {
   return { text: text, placeholders: placeholders };
 }
 
-function restorePlaceholders(html, codePlaceholders, mathPlaceholders) {
-  // Restore math placeholders via KaTeX — single regex pass (was O(n²) split/join)
-  if (typeof katex !== 'undefined' && mathPlaceholders.length > 0) {
-    html = html.replace(/%%MATH_(\d+)%%/g, function(_m, idx) {
-      var item = mathPlaceholders[+idx];
-      return item ? katex.renderToString(item.tex, { displayMode: item.displayMode, throwOnError: false }) : _m;
-    });
-  }
+/* ---- Phase 4a: Restore math placeholders via KaTeX ---- */
 
-  // Restore code placeholders — single regex pass
-  function encodeFencedBlock(raw) {
-    var newlinePos = raw.indexOf('\n');
-    var lang = raw.slice(3, newlinePos).trim();
-    var body = raw.slice(newlinePos + 1, raw.length - 3);
-    if (body.charCodeAt(body.length - 1) === 10) { body = body.slice(0, -1); }
-    var langAttr = lang ? ' class="language-' + escapeHtml(lang) + '"' : '';
-    return '<pre><code' + langAttr + '>' + escapeHtml(body) + '</code></pre>';
-  }
+function restoreMathPlaceholders(html, mathPlaceholders) {
+  if (typeof katex === 'undefined' || mathPlaceholders.length === 0) return html;
+  return html.replace(/%%MATH_(\d+)%%/g, function(_m, idx) {
+    var item = mathPlaceholders[+idx];
+    return item ? katex.renderToString(item.tex, { displayMode: item.displayMode, throwOnError: false }) : _m;
+  });
+}
 
-  if (codePlaceholders.length > 0) {
-    html = html.replace(/%%CODE_(\d+)%%/g, function(_m, idx) {
-      var raw = codePlaceholders[+idx];
-      if (!raw) return _m;
-      return raw.indexOf('```') === 0
-        ? encodeFencedBlock(raw)
-        : '<code>' + escapeHtml(raw.slice(1, -1)) + '</code>';
-    });
-  }
+/* ---- Phase 4b: Restore code placeholders ---- */
 
-  // Sanitize — allow MathML tags that KaTeX emits for accessibility
+function encodeFencedBlock(raw) {
+  var newlinePos = raw.indexOf('\n');
+  var lang = raw.slice(3, newlinePos).trim();
+  var body = raw.slice(newlinePos + 1, raw.length - 3);
+  if (body.charCodeAt(body.length - 1) === 10) { body = body.slice(0, -1); }
+  var langAttr = lang ? ' class="language-' + escapeHtml(lang) + '"' : '';
+  return '<pre><code' + langAttr + '>' + escapeHtml(body) + '</code></pre>';
+}
+
+function restoreCodePlaceholders(html, codePlaceholders) {
+  if (codePlaceholders.length === 0) return html;
+  return html.replace(/%%CODE_(\d+)%%/g, function(_m, idx) {
+    var raw = codePlaceholders[+idx];
+    if (!raw) return _m;
+    return raw.indexOf('```') === 0
+      ? encodeFencedBlock(raw)
+      : '<code>' + escapeHtml(raw.slice(1, -1)) + '</code>';
+  });
+}
+
+/* ---- Phase 4c: Sanitize (allow MathML from KaTeX) ---- */
+
+function sanitizeHtml(html) {
   return DOMPurify.sanitize(html, {
     ADD_TAGS: [
       'math', 'semantics', 'annotation', 'mrow', 'mi', 'mn', 'mo',
@@ -89,6 +95,14 @@ function restorePlaceholders(html, codePlaceholders, mathPlaceholders) {
       'linethickness', 'lspace', 'rspace', 'voffset'
     ]
   });
+}
+
+/* ---- Orchestrate the restore + sanitize pipeline ---- */
+
+function restorePlaceholders(html, codePlaceholders, mathPlaceholders) {
+  html = restoreMathPlaceholders(html, mathPlaceholders);
+  html = restoreCodePlaceholders(html, codePlaceholders);
+  return sanitizeHtml(html);
 }
 
 /** Render Markdown text to sanitized HTML, with KaTeX math support. */
@@ -111,6 +125,6 @@ function renderMarkdownToHTML(text) {
   return restorePlaceholders(html, codeResult.placeholders, mathResult.placeholders);
 }
 
-window.renderMarkdownToHTML = renderMarkdownToHTML;
+App.renderMarkdownToHTML = renderMarkdownToHTML;
 
 })();
