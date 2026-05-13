@@ -4,31 +4,6 @@
 
 (function() {
 
-/* ---- Scroll helpers ---- */
-
-function preserveScrollPosition(container, fn) {
-  var isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < CFG.SCROLL_BOTTOM_THRESHOLD;
-  var previousScrollTop = container.scrollTop;
-  fn();
-  if (isAtBottom) {
-    container.scrollTop = container.scrollHeight;
-  } else {
-    container.scrollTop = previousScrollTop;
-  }
-}
-
-function evaluateScrollToBottom() {
-  var c = DomRefs.chatContainer;
-  var b = DomRefs.scrollToBottomBtn;
-  if (!c || !b) return;
-  var distanceFromBottom = c.scrollHeight - c.scrollTop - c.clientHeight;
-  if (distanceFromBottom > CFG.SCROLL_BTN_THRESHOLD) {
-    b.classList.remove('is-invisible');
-  } else {
-    b.classList.add('is-invisible');
-  }
-}
-
 /* ---- Action icon button factory ---- */
 
 function createActionIconBtn(title, iconSvg, handler, disableDuringGen) {
@@ -74,101 +49,6 @@ function createEditModeUI(msg, contentDiv, actionsDiv) {
 
 /* ---- Sub-renderers ---- */
 
-/** Create a collapsible reasoning header element. */
-function createReasoningHeader(initialCollapsed) {
-  var header = document.createElement('div');
-  header.className = 'reasoning-header';
-
-  var title = document.createElement('span');
-  title.innerText = UI.REASONING_TITLE;
-
-  var stateSpan = document.createElement('span');
-  stateSpan.className = 'reasoning-header-state';
-  stateSpan.innerText = initialCollapsed ? UI.REASONING_COLLAPSED : UI.REASONING_EXPANDED;
-
-  header.appendChild(title);
-  header.appendChild(document.createTextNode(' '));
-  header.appendChild(stateSpan);
-
-  return { header: header, stateSpan: stateSpan };
-}
-
-/** Create a complete reasoning block DOM element (collapsible). */
-function createReasoningBlockDOM(reasoningContent) {
-  var reasoningDiv = document.createElement('div');
-  reasoningDiv.className = 'reasoning-block';
-
-  var hdr = createReasoningHeader(false);
-  var contentDiv = document.createElement('div');
-  contentDiv.className = 'reasoning-text prose-content';
-  contentDiv.innerHTML = renderMarkdownToHTML(reasoningContent);
-
-  var collapsed = false;
-  hdr.header.onclick = function () {
-    collapsed = !collapsed;
-    setHidden(contentDiv, collapsed);
-    hdr.stateSpan.innerText = collapsed ? UI.REASONING_COLLAPSED : UI.REASONING_EXPANDED;
-  };
-
-  reasoningDiv.appendChild(hdr.header);
-  reasoningDiv.appendChild(contentDiv);
-  return reasoningDiv;
-}
-
-function renderEmptyState() {
-  var container = DomRefs.chatContainer;
-  container.innerHTML = '';
-
-  var emptyState = document.createElement('div');
-  emptyState.className = 'empty-state';
-
-  var title = document.createElement('div');
-  title.className = 'empty-state-title';
-  title.innerText = UI.EMPTY_TITLE;
-
-  var inputRow = document.createElement('div');
-  inputRow.className = 'empty-input-row';
-
-  var spacer = document.createElement('div');
-  spacer.className = 'empty-input-spacer';
-  spacer.setAttribute('aria-hidden', 'true');
-
-  var inputWrapper = document.createElement('div');
-  inputWrapper.className = 'empty-input-wrapper';
-
-  var inputShell = document.createElement('div');
-  inputShell.className = 'empty-input-shell';
-
-  var textarea = document.createElement('textarea');
-  textarea.id = 'emptyInput';
-  textarea.placeholder = UI.EMPTY_PLACEHOLDER;
-  textarea.rows = 1;
-  textarea.autofocus = true;
-
-  var sendBtn = document.createElement('button');
-  sendBtn.id = 'emptySendBtn';
-  sendBtn.className = 'primary';
-  sendBtn.innerText = UI.BTN_SEND;
-
-  sendBtn.onclick = function () {
-    var content = textarea.value;
-    state.messages = state.messages.concat([createMessage('user', content)]);
-    renderMessages();
-    persistMessages();
-  };
-
-  inputShell.appendChild(textarea);
-  inputWrapper.appendChild(inputShell);
-  inputRow.appendChild(spacer);
-  inputRow.appendChild(inputWrapper);
-  inputRow.appendChild(sendBtn);
-  emptyState.appendChild(title);
-  emptyState.appendChild(inputRow);
-  container.appendChild(emptyState);
-
-  autoResizeTextarea(textarea, { minHeight: CFG.TEXTAREA_MIN_HEIGHT, maxHeight: CFG.TEXTAREA_MAX_HEIGHT, clampOverflow: true });
-}
-
 function renderMessageMeta(msg) {
   var metaDiv = document.createElement('div');
   metaDiv.className = 'msg-meta';
@@ -208,25 +88,20 @@ function renderVersionNav(msg) {
   nextBtn.className = 'version-nav-btn';
   nextBtn.innerHTML = '&rsaquo;';
 
-  var versionCount = Array.isArray(msg.versions) && msg.versions.length > 0 ? msg.versions.length : 1;
-  var currentVersionIndex = Number.isInteger(msg.currentVersionIndex) ? msg.currentVersionIndex : versionCount - 1;
+  var info = getVersionInfo(msg);
 
-  versionLabel.innerText = (Math.min(currentVersionIndex + 1, versionCount)) + '/' + versionCount;
-  prevBtn.disabled = currentVersionIndex <= 0;
-  nextBtn.disabled = currentVersionIndex >= versionCount - 1;
+  versionLabel.innerText = (Math.min(info.current + 1, info.count)) + '/' + info.count;
+  prevBtn.disabled = info.current <= 0;
+  nextBtn.disabled = info.current >= info.count - 1;
 
-  prevBtn.onclick = function () { setAssistantVersion(msg, currentVersionIndex - 1); };
-  nextBtn.onclick = function () { setAssistantVersion(msg, currentVersionIndex + 1); };
+  prevBtn.onclick = function () { setAssistantVersion(msg, info.current - 1); };
+  nextBtn.onclick = function () { setAssistantVersion(msg, info.current + 1); };
 
   versionNav.appendChild(prevBtn);
   versionNav.appendChild(versionLabel);
   versionNav.appendChild(nextBtn);
 
   return versionNav;
-}
-
-function renderReasoningBlock(msg) {
-  return createReasoningBlockDOM(msg.reasoning_content);
 }
 
 function renderMessageActions(msg, contentDiv) {
@@ -263,7 +138,7 @@ function renderMessageItem(msg) {
   msgDiv.appendChild(metaDiv);
 
   if (msg.role === 'assistant' && msg.reasoning_content && msg.reasoning_content.trim()) {
-    msgDiv.appendChild(renderReasoningBlock(msg));
+    msgDiv.appendChild(createReasoningBlockDOM(msg.reasoning_content));
   }
 
   var contentDiv = document.createElement('div');
@@ -383,16 +258,10 @@ function setAssistantVersion(msg, versionIndex) {
   refreshMessageDOM(msg.id);
 }
 
-window.preserveScrollPosition = preserveScrollPosition;
-window.evaluateScrollToBottom = evaluateScrollToBottom;
 window.createActionIconBtn = createActionIconBtn;
 window.createEditModeUI = createEditModeUI;
-window.createReasoningHeader = createReasoningHeader;
-window.createReasoningBlockDOM = createReasoningBlockDOM;
-window.renderEmptyState = renderEmptyState;
 window.renderMessageMeta = renderMessageMeta;
 window.renderVersionNav = renderVersionNav;
-window.renderReasoningBlock = renderReasoningBlock;
 window.renderMessageActions = renderMessageActions;
 window.renderMessageItem = renderMessageItem;
 window.renderMessages = renderMessages;

@@ -6,11 +6,16 @@
 
 /** Bootstrap the application. */
 function bootstrapApp() {
-  initDomRefs();
-  loadMessagesFromStorage();
-  syncConfigToUI();
-  renderMessages();
-  bindAllEvents();
+  try {
+    initDomRefs();
+    loadMessagesFromStorage();
+    syncConfigToUI();
+    renderMessages();
+    bindAllEvents();
+  } catch (e) {
+    console.error('Bootstrap failed:', e);
+    if (DomRefs.statusSpan) DomRefs.statusSpan.innerText = '启动失败: ' + (e.message || e);
+  }
 }
 
 bootstrapApp();
