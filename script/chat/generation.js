@@ -4,6 +4,71 @@
 
 (function() {
 
+/* ---- Internal: generation lifecycle helpers ---- */
+
+/** Reset generation state and hide stop button. */
+function cleanupGeneration() {
+  state.endGeneration();
+  syncGenButtonStates();
+  setHidden(DomRefs.stopBtn, true);
+}
+
+/** Orchestrate a streaming generation task: UI setup → stream → finalize. */
+async function runAssistantTask(requestBody, msgId, loadingText, doneText, options) {
+  if (options === undefined) options = {};
+  var isPrefix = !!options.isPrefix;
+  var originalContent = options.originalContent || '';
+  var versionIndex = Number.isInteger(options.versionIndex) ? options.versionIndex : null;
+
+  setHidden(DomRefs.stopBtn, false);
+  setStatus(loadingText);
+  var fullContent = '';
+
+  try {
+    await streamWithAbort(
+      requestBody,
+      // content callback
+      function (chunk) {
+        fullContent += chunk;
+        mutateVersion(msgId, versionIndex, function (_msg, ver) {
+          ver.content = isPrefix ? originalContent + fullContent : fullContent;
+        });
+        updateSingleMessageDOM(msgId);
+      },
+      // reasoning callback (skipped for prefix mode)
+      isPrefix ? null : function (chunk) {
+        mutateVersion(msgId, versionIndex, function (_msg, ver) {
+          ver.reasoning_content = (ver.reasoning_content || '') + chunk;
+        });
+        updateSingleMessageDOM(msgId);
+      }
+    );
+    // onComplete
+    if (!isPrefix && !fullContent) {
+      mutateVersion(msgId, versionIndex, function (_msg, ver) {
+        ver.content = ERR.EMPTY_RESPONSE;
+      });
+    }
+    persistMessages();
+    setStatus(doneText);
+  } catch (err) {
+    setStatus(STATUS.ERROR_PREFIX + err.message);
+    persistMessages();
+  } finally {
+    cleanupGeneration();
+    updateSingleMessageDOM(msgId);
+  }
+}
+
+function startGeneration(requestBody, msgId, options) {
+  if (options === undefined) options = {};
+  state.beginGeneration(msgId);
+  syncGenButtonStates();
+  refreshMessageDOM(msgId);
+  persistMessages();
+  return runAssistantTask(requestBody, msgId, STATUS.GENERATING, STATUS.DONE, options);
+}
+
 /* ---- Stop generation ---- */
 
 function stopGeneration() {
@@ -11,7 +76,9 @@ function stopGeneration() {
   if (state.currentAbortController) {
     state.currentAbortController.abort();
   }
-  cleanupGeneration();
+  state.endGeneration();
+  syncGenButtonStates();
+  setHidden(DomRefs.stopBtn, true);
   setStatus(STATUS.STOPPED);
   if (msgId != null) updateSingleMessageDOM(msgId);
 }
@@ -26,7 +93,7 @@ async function generateNewResponse(afterMsgId) {
   var requestBody = buildRequestBody(context, state.config.thinkingEnabled);
 
   var tempMessage = createMessage('assistant', '', { reasoning_content: '' });
-  state.messages = [...state.messages.slice(0, idx + 1), tempMessage, ...state.messages.slice(idx + 1)];
+  state.insertMessageAt(idx + 1, tempMessage);
   applyCurrentVersion(tempMessage);
 
   await startGeneration(requestBody, tempMessage.id, { versionIndex: 0 });

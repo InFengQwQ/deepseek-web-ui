@@ -8,10 +8,8 @@
 
 function clearAllMessages() {
   if (confirm(CFG.DIALOG_CONFIRM_CLEAR)) {
-    state.messages = [];
-    state.nextId = 1;
+    state.clearMessages();
     renderMessages();
-    persistMessages();
     setStatus(STATUS.CLEARED);
   }
 }
@@ -49,9 +47,8 @@ function importConversation(file) {
         });
       });
       if (newMsgs.length === 0) throw new Error(ERR.IMPORT_EMPTY);
-      state.messages = newMsgs;
+      state.replaceMessages(newMsgs);
       renderMessages();
-      persistMessages();
       setStatus(STATUS.IMPORTED + state.messages.length + ' 条消息', CFG.STATUS_TIMEOUT_LONG);
     } catch (err) {
       setStatus(STATUS.IMPORT_ERROR_PREFIX + err.message);
@@ -66,7 +63,7 @@ function enterEditModeForNewMessages() {
   state.messages.forEach(function (msg) {
     if (!msg._isNew) return;
     delete msg._isNew;
-    var msgDiv = DomRefs.chatContainer.querySelector('.message-item[data-id="' + msg.id + '"]');
+    var msgDiv = getMessageElement(msg.id);
     if (!msgDiv) return;
     var contentDiv = msgDiv.querySelector('.msg-content');
     var actionsDiv = msgDiv.querySelector('.msg-actions');
@@ -78,11 +75,9 @@ function insertUserMessageAfter(afterMsgId) {
   var idx = findMessageIndexById(afterMsgId);
   if (idx === -1) return;
   var newMsg = createMessage('user', '', { isNew: true });
-  var newMessages = state.messages.slice();
-  newMessages.splice(idx + 1, 0, newMsg);
-  state.messages = newMessages;
+  state.insertMessageAt(idx + 1, newMsg);
 
-  var afterDiv = DomRefs.chatContainer.querySelector('.message-item[data-id="' + afterMsgId + '"]');
+  var afterDiv = getMessageElement(afterMsgId);
   if (afterDiv) {
     var parts = renderMessageItem(newMsg);
     afterDiv.parentNode.insertBefore(parts.msgDiv, afterDiv.nextSibling);
@@ -90,7 +85,6 @@ function insertUserMessageAfter(afterMsgId) {
     renderMessages();
   }
   enterEditModeForNewMessages();
-  persistMessages();
 }
 
 function editMessage(msgId, contentDiv, actionsDiv, isNew) {
@@ -127,13 +121,10 @@ function editMessage(msgId, contentDiv, actionsDiv, isNew) {
 }
 
 function deleteMessage(msgId) {
-  var idx = findMessageIndexById(msgId);
-  if (idx !== -1) {
-    state.messages = state.messages.slice(0, idx).concat(state.messages.slice(idx + 1));
-    var msgDiv = DomRefs.chatContainer.querySelector('.message-item[data-id="' + msgId + '"]');
+  if (state.removeMessage(msgId)) {
+    var msgDiv = getMessageElement(msgId);
     if (msgDiv) msgDiv.remove();
     if (state.messages.length === 0) renderEmptyState();
-    persistMessages();
     setStatus(STATUS.DELETED);
   }
 }

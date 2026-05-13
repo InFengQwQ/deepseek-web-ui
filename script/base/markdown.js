@@ -47,17 +47,15 @@ function protectMath(text) {
 }
 
 function restorePlaceholders(html, codePlaceholders, mathPlaceholders) {
-  // Restore math placeholders via KaTeX
-  if (typeof katex !== 'undefined') {
-    for (var i = 0; i < mathPlaceholders.length; i++) {
-      var item = mathPlaceholders[i];
-      html = html.split('%%MATH_' + i + '%%').join(
-        katex.renderToString(item.tex, { displayMode: item.displayMode, throwOnError: false })
-      );
-    }
+  // Restore math placeholders via KaTeX — single regex pass (was O(n²) split/join)
+  if (typeof katex !== 'undefined' && mathPlaceholders.length > 0) {
+    html = html.replace(/%%MATH_(\d+)%%/g, function(_m, idx) {
+      var item = mathPlaceholders[+idx];
+      return item ? katex.renderToString(item.tex, { displayMode: item.displayMode, throwOnError: false }) : _m;
+    });
   }
 
-  // Restore code placeholders
+  // Restore code placeholders — single regex pass
   function encodeFencedBlock(raw) {
     var newlinePos = raw.indexOf('\n');
     var lang = raw.slice(3, newlinePos).trim();
@@ -67,13 +65,14 @@ function restorePlaceholders(html, codePlaceholders, mathPlaceholders) {
     return '<pre><code' + langAttr + '>' + escapeHtml(body) + '</code></pre>';
   }
 
-  for (var c = 0; c < codePlaceholders.length; c++) {
-    var raw = codePlaceholders[c];
-    html = html.split('%%CODE_' + c + '%%').join(
-      raw.indexOf('```') === 0
+  if (codePlaceholders.length > 0) {
+    html = html.replace(/%%CODE_(\d+)%%/g, function(_m, idx) {
+      var raw = codePlaceholders[+idx];
+      if (!raw) return _m;
+      return raw.indexOf('```') === 0
         ? encodeFencedBlock(raw)
-        : '<code>' + escapeHtml(raw.slice(1, -1)) + '</code>'
-    );
+        : '<code>' + escapeHtml(raw.slice(1, -1)) + '</code>';
+    });
   }
 
   // Sanitize — allow MathML tags that KaTeX emits for accessibility
@@ -116,7 +115,6 @@ function renderMarkdownToHTML(text) {
   }
 }
 
-window.escapeHtml = escapeHtml;
 window.renderMarkdownToHTML = renderMarkdownToHTML;
 
 })();

@@ -40,25 +40,31 @@ function updateThinkingUI() {
 
 /* ---- Config sync & save ---- */
 
+/** Iterate CONFIG_SCHEMA to sync state → UI. */
 function syncConfigToUI() {
-  DomRefs.apiKeyInput.value = state.config.apiKey;
-  DomRefs.modelSelect.value = state.config.model;
-  DomRefs.thinkingToggle.checked = state.config.thinkingEnabled;
-  DomRefs.effortSelect.value = state.config.reasoningEffort;
-  DomRefs.tempInput.value = state.config.temperature;
-  DomRefs.systemPromptInput.value = state.config.systemPrompt;
-  scrollSystemPromptToBottom();
+  for (var i = 0; i < CONFIG_SCHEMA.length; i++) {
+    var item = CONFIG_SCHEMA[i];
+    var el = document.getElementById(item.elId);
+    if (!el) continue;
+    var setter = item.uiSet || function(el, v) { el.value = v; };
+    setter(el, state.config[item.prop]);
+  }
+  if (DomRefs.systemPromptModal && !DomRefs.systemPromptModal.classList.contains('u-none')) {
+    scrollSystemPromptToBottom();
+  }
   updateThinkingUI();
 }
 
+/** Iterate CONFIG_SCHEMA to save UI → state, then persist. */
 function saveConfiguration() {
-  state.config.apiKey = DomRefs.apiKeyInput.value.trim();
-  state.config.model = DomRefs.modelSelect.value;
-  state.config.thinkingEnabled = DomRefs.thinkingToggle.checked;
-  state.config.reasoningEffort = DomRefs.effortSelect.value;
-  state.config.systemPrompt = DomRefs.systemPromptInput.value;
-  var newTemp = parseFloat(DomRefs.tempInput.value);
-  if (!isNaN(newTemp)) state.config.temperature = newTemp;
+  for (var i = 0; i < CONFIG_SCHEMA.length; i++) {
+    var item = CONFIG_SCHEMA[i];
+    var el = document.getElementById(item.elId);
+    if (!el) continue;
+    var getter = item.uiGet || function(el) { return el.value; };
+    var val = getter(el);
+    if (val !== null) state.config[item.prop] = val;
+  }
   persistConfig();
   closeSystemPromptModal();
   setStatus(STATUS.SAVED, CFG.STATUS_TIMEOUT_SHORT);

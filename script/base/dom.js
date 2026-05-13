@@ -26,6 +26,11 @@ window.DomRefs = {
   importBtn: null
 };
 
+/** Get a message DOM element by its data-id. Returns null if not found. */
+function getMessageElement(msgId) {
+  return DomRefs.chatContainer ? DomRefs.chatContainer.querySelector('.message-item[data-id="' + msgId + '"]') : null;
+}
+
 function initDomRefs() {
   DomRefs.chatContainer = document.getElementById('chatContainer');
   DomRefs.statusSpan = document.getElementById('statusMsg');
@@ -50,5 +55,6 @@ function initDomRefs() {
 }
 
 window.initDomRefs = initDomRefs;
+window.getMessageElement = getMessageElement;
 
 })();

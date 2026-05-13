@@ -40,10 +40,9 @@ function renderEmptyState() {
   sendBtn.innerText = UI.BTN_SEND;
 
   sendBtn.onclick = function () {
-    var content = textarea.value;
-    state.messages = state.messages.concat([createMessage('user', content)]);
+    if (!textarea.value.trim()) return;
+    addUserMessage(textarea.value);
     renderMessages();
-    persistMessages();
   };
 
   inputShell.appendChild(textarea);

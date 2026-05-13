@@ -27,31 +27,37 @@ function ensureCanStartGeneration(requireApiKey) {
 
 /* ---- API request builders ---- */
 
-function buildRequestBody(messagesArray, useThinking, extra) {
-  if (extra === undefined) extra = {};
-  var systemMessage = buildSystemPromptMessage();
-  var messages = systemMessage ? [systemMessage, ...messagesArray] : messagesArray;
+function buildRequestBody(messagesArray, useThinking, options) {
+  if (options === undefined) options = {};
+  if (options.extra === undefined) options.extra = {};
+  var model = options.model || state.config.model;
+  var systemPrompt = options.systemPrompt !== undefined ? options.systemPrompt : state.config.systemPrompt;
+  var reasoningEffort = options.reasoningEffort || state.config.reasoningEffort;
+  var temperature = options.temperature !== undefined ? options.temperature : state.config.temperature;
+
+  var systemMessage = typeof systemPrompt === 'string' && systemPrompt.trim() ? { role: 'system', content: systemPrompt } : null;
+  var messages = systemMessage ? [systemMessage].concat(messagesArray) : messagesArray;
   var body = {
-    model: state.config.model,
-    messages,
+    model: model,
+    messages: messages,
     max_tokens: CFG.API_MAX_TOKENS,
-    stream: true,
+    stream: true
   };
   if (useThinking) {
     body.thinking = { type: 'enabled' };
-    body.reasoning_effort = state.config.reasoningEffort;
+    body.reasoning_effort = reasoningEffort;
   } else {
     body.thinking = { type: 'disabled' };
-    body.temperature = state.config.temperature;
+    body.temperature = temperature;
   }
-  Object.assign(body, extra);
+  Object.assign(body, options.extra);
   return body;
 }
 
 /** Pure fetch + SSE streaming. No DOM or UI state side effects. */
 async function streamWithAbort(requestBody, contentCallback, reasoningCallback) {
   var controller = new AbortController();
-  state.currentAbortController = controller;
+  state.setAbortController(controller);
 
   try {
     var resp = await fetch(BASE_URL, {
@@ -102,91 +108,13 @@ async function streamWithAbort(requestBody, contentCallback, reasoningCallback) 
   }
 }
 
-/** Reset generation state and hide stop button. Pure state cleanup — no DOM update. */
-function cleanupGeneration() {
-  state.isGenerating = false;
-  state.activeGeneratingMessageId = null;
-  state.currentAbortController = null;
-  setHidden(DomRefs.stopBtn, true);
-}
-
-/** Apply a chunk to a specific version of a message, sync if current, update DOM. */
-function withMessageVersion(msgId, versionIndex, updater) {
-  var msg = findMessageById(msgId);
-  if (!msg) return;
-  var targetVersion = versionIndex !== null ? getAssistantVersion(msg, versionIndex) : null;
-  if (!targetVersion) return;
-  updater(msg, targetVersion);
-  if (msg.currentVersionIndex === versionIndex) {
-    msg.content = targetVersion.content;
-    msg.reasoning_content = targetVersion.reasoning_content || null;
-  }
-  updateSingleMessageDOM(msgId);
-}
-
-/** Orchestrate a streaming generation task: UI setup → stream → finalize. */
-async function runAssistantTask(requestBody, msgId, loadingText, doneText, options) {
-  if (options === undefined) options = {};
-  var isPrefix = !!options.isPrefix;
-  var originalContent = options.originalContent || '';
-  var versionIndex = Number.isInteger(options.versionIndex) ? options.versionIndex : null;
-
-  state.isGenerating = true;
-  setHidden(DomRefs.stopBtn, false);
-  setStatus(loadingText);
-  var fullContent = '';
-
-  try {
-    await streamWithAbort(
-      requestBody,
-      // content callback
-      function (chunk) {
-        fullContent += chunk;
-        withMessageVersion(msgId, versionIndex, function (_msg, ver) {
-          ver.content = isPrefix ? originalContent + fullContent : fullContent;
-        });
-      },
-      // reasoning callback (skipped for prefix mode)
-      isPrefix ? null : function (chunk) {
-        withMessageVersion(msgId, versionIndex, function (_msg, ver) {
-          ver.reasoning_content = (ver.reasoning_content || '') + chunk;
-        });
-      }
-    );
-    // onComplete
-    if (!isPrefix && !fullContent) {
-      withMessageVersion(msgId, versionIndex, function (_msg, ver) {
-        ver.content = ERR.EMPTY_RESPONSE;
-      });
-    }
-    persistMessages();
-    setStatus(doneText);
-  } catch (err) {
-    setStatus(STATUS.ERROR_PREFIX + err.message);
-    persistMessages();
-  } finally {
-    cleanupGeneration();
-    updateSingleMessageDOM(msgId);
-  }
-}
-
-function startGeneration(requestBody, msgId, options) {
-  if (options === undefined) options = {};
-  state.activeGeneratingMessageId = msgId;
-  refreshMessageDOM(msgId);
-  persistMessages();
-  return runAssistantTask(requestBody, msgId, STATUS.GENERATING, STATUS.DONE, options);
-}
+/* ---- Exports (pure API layer; orchestration lives in generation.js) ---- */
 
 window.buildSystemPromptMessage = buildSystemPromptMessage;
 window.buildApiContextThroughIndex = buildApiContextThroughIndex;
 window.ensureCanStartGeneration = ensureCanStartGeneration;
 window.buildRequestBody = buildRequestBody;
 window.streamWithAbort = streamWithAbort;
-window.cleanupGeneration = cleanupGeneration;
-window.withMessageVersion = withMessageVersion;
-window.runAssistantTask = runAssistantTask;
-window.startGeneration = startGeneration;
 
 })();
 

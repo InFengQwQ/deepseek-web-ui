@@ -1,12 +1,9 @@
 /* ================================================================
-   render.js — Message rendering: item DOM, reasoning block, version
-   nav, meta, actions, top-level rendering, incremental updates,
-   edit-mode UI
+   render-item.js — Message item DOM rendering:
+   reasoning block, version nav, meta, actions, compose item
    ================================================================ */
 
 (function() {
-
-/* === Item-level rendering === */
 
 /* ---- Reasoning block DOM rendering ---- */
 
@@ -187,128 +184,10 @@ function renderMessageItem(msg) {
   return { msgDiv: msgDiv, contentDiv: contentDiv, actionsDiv: actionsDiv };
 }
 
-/* === Top-level rendering & edit-mode UI === */
-
-/** Build inline-edit UI (textarea + save/cancel) inside a message content div. */
-function createEditModeUI(msg, contentDiv, actionsDiv) {
-  var textarea = document.createElement('textarea');
-  textarea.className = 'compact-textarea message-edit-textarea';
-  textarea.value = msg.content;
-
-  var saveBtn = document.createElement('button');
-  saveBtn.className = 'small primary message-edit-save';
-  saveBtn.innerText = UI.BTN_SAVE;
-
-  var cancelBtn = document.createElement('button');
-  cancelBtn.className = 'small';
-  cancelBtn.innerText = UI.BTN_CANCEL;
-
-  var editActions = document.createElement('div');
-  editActions.className = 'message-edit-actions';
-  editActions.appendChild(saveBtn);
-  editActions.appendChild(cancelBtn);
-
-  contentDiv.innerHTML = '';
-  contentDiv.appendChild(textarea);
-  contentDiv.appendChild(editActions);
-
-  autoResizeTextarea(textarea);
-
-  if (actionsDiv) actionsDiv.style.opacity = '0';
-  textarea.focus();
-
-  return { textarea: textarea, saveBtn: saveBtn, cancelBtn: cancelBtn };
-}
-
-/* ---- Main render entry point ---- */
-
-function renderMessages() {
-  if (!DomRefs.chatContainer) return;
-
-  if (state.messages.length === 0) {
-    renderEmptyState();
-    return;
-  }
-
-  preserveScrollPosition(DomRefs.chatContainer, function () {
-    DomRefs.chatContainer.innerHTML = '';
-    state.messages.forEach(function (msg) {
-      var parts = renderMessageItem(msg);
-      DomRefs.chatContainer.appendChild(parts.msgDiv);
-    });
-  });
-
-  evaluateScrollToBottom();
-}
-
-/* ---- Incremental update (called during streaming) ---- */
-
-function updateSingleMessageDOM(msgId) {
-  var msg = findMessageById(msgId);
-  if (!msg || !DomRefs.chatContainer) return;
-
-  var msgDiv = getMessageElement(msgId);
-  if (!msgDiv) {
-    refreshMessageDOM(msgId);
-    return;
-  }
-
-  preserveScrollPosition(DomRefs.chatContainer, function () {
-    if (msg.role === 'assistant' && msg.reasoning_content && msg.reasoning_content.trim()) {
-      var reasoningDiv = msgDiv.querySelector('.reasoning-block');
-      if (!reasoningDiv) {
-        reasoningDiv = createReasoningBlockDOM(msg.reasoning_content);
-        var existingContent = msgDiv.querySelector('.msg-content');
-        msgDiv.insertBefore(reasoningDiv, existingContent);
-      } else {
-        var textDiv = reasoningDiv.querySelector('.reasoning-text');
-        if (textDiv) textDiv.innerHTML = renderMarkdownToHTML(msg.reasoning_content);
-      }
-    }
-
-    var contentDiv = msgDiv.querySelector('.msg-content');
-    if (contentDiv && !contentDiv.querySelector('textarea')) {
-      if (isMessageStreaming(msg)) {
-        contentDiv.innerHTML = '<span class="typing-indicator"></span>';
-      } else {
-        contentDiv.innerHTML = renderMarkdownToHTML(msg.content);
-      }
-    }
-
-    var actionsDiv = msgDiv.querySelector('.msg-actions');
-    if (actionsDiv) {
-      setHidden(actionsDiv, msg.id === state.activeGeneratingMessageId);
-    }
-  });
-
-  evaluateScrollToBottom();
-}
-
-/** Replace a single message's DOM element with a fresh render from state. */
-function refreshMessageDOM(msgId) {
-  var msg = findMessageById(msgId);
-  if (!msg) return;
-  var oldDiv = getMessageElement(msgId);
-  if (!oldDiv) {
-    if (state.messages.length === 0) renderEmptyState();
-    else renderMessages();
-    return;
-  }
-  var parts = renderMessageItem(msg);
-  oldDiv.parentNode.replaceChild(parts.msgDiv, oldDiv);
-  evaluateScrollToBottom();
-}
-
 window.createReasoningBlockDOM = createReasoningBlockDOM;
 window.isMessageStreaming = isMessageStreaming;
 window.createActionIconBtn = createActionIconBtn;
 window.syncGenButtonStates = syncGenButtonStates;
 window.renderMessageItem = renderMessageItem;
-window.createEditModeUI = createEditModeUI;
-window.renderMessages = renderMessages;
-window.updateSingleMessageDOM = updateSingleMessageDOM;
-window.refreshMessageDOM = refreshMessageDOM;
 
 })();
-
-

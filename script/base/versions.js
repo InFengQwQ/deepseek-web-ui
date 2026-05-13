@@ -4,16 +4,6 @@
 
 (function() {
 
-/** Sanitize core message fields with type-safe defaults. */
-function sanitizeMessageFields(source) {
-  return {
-    role: source.role,
-    content: typeof source.content === 'string' ? source.content : '',
-    reasoning_content: typeof source.reasoning_content === 'string' ? source.reasoning_content : null,
-    createdAt: typeof source.createdAt === 'string' ? source.createdAt : new Date().toISOString()
-  };
-}
-
 /** Extract count & current index from a message's version state. */
 function getVersionInfo(msg) {
   var count = Array.isArray(msg.versions) && msg.versions.length > 0 ? msg.versions.length : 1;
@@ -59,26 +49,37 @@ function appendAssistantVersion(msg, initialVersion) {
   return applyCurrentVersion(msg) ? msg.currentVersionIndex : null;
 }
 
-/** Normalize a raw message record from storage/import into the state schema. */
-function normalizeMessageRecord(msg) {
-  var normalized = sanitizeMessageFields(msg);
-  normalized.id = msg.id;
-  if (normalized.role === 'assistant') {
-    var rawVersions = Array.isArray(msg.versions) && msg.versions.length > 0 ? msg.versions : [normalized];
-    normalized.versions = rawVersions.map(cloneVersionEntry);
-    var candidateIndex = Number.isInteger(msg.currentVersionIndex) ? msg.currentVersionIndex : normalized.versions.length - 1;
-    normalized.currentVersionIndex = Math.min(Math.max(candidateIndex, 0), normalized.versions.length - 1);
-    applyCurrentVersion(normalized);
-  }
-  return normalized;
+/** Switch assistant message version index, persist, and re-render. */
+function setAssistantVersion(msg, versionIndex) {
+  if (!msg || msg.role !== 'assistant') return;
+  msg.currentVersionIndex = versionIndex;
+  applyCurrentVersion(msg);
+  persistMessages();
+  refreshMessageDOM(msg.id);
 }
 
-window.sanitizeMessageFields = sanitizeMessageFields;
+/** Mutate a specific version of a message (pure data, no DOM).
+ *  If the target version is the current one, syncs content/reasoning to msg root.
+ *  Returns true if mutation was applied. */
+function mutateVersion(msgId, versionIndex, updater) {
+  var msg = findMessageById(msgId);
+  if (!msg) return false;
+  var targetVersion = versionIndex !== null ? getAssistantVersion(msg, versionIndex) : null;
+  if (!targetVersion) return false;
+  updater(msg, targetVersion);
+  if (msg.currentVersionIndex === versionIndex) {
+    msg.content = targetVersion.content;
+    msg.reasoning_content = targetVersion.reasoning_content || null;
+  }
+  return true;
+}
+
 window.getVersionInfo = getVersionInfo;
 window.cloneVersionEntry = cloneVersionEntry;
 window.applyCurrentVersion = applyCurrentVersion;
 window.getAssistantVersion = getAssistantVersion;
 window.appendAssistantVersion = appendAssistantVersion;
-window.normalizeMessageRecord = normalizeMessageRecord;
+window.setAssistantVersion = setAssistantVersion;
+window.mutateVersion = mutateVersion;
 
 })();
