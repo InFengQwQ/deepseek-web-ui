@@ -9,6 +9,7 @@ var App = window.App = window.App || {};
 
 function clearAllMessages() {
   if (confirm(App.CFG.DIALOG_CONFIRM_CLEAR)) {
+    if (App.state.isGenerating) App.stopGeneration();
     App.state.clearMessages();
     App.renderMessages();
     App.setStatus(App.STATUS.CLEARED);

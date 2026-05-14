@@ -39,6 +39,18 @@ function updateThinkingUI() {
   App.setHidden(App.DomRefs.tempField, enabled);
 }
 
+/* ---- UI getter / setter lookup (keyed by config prop) ---- */
+
+var CONFIG_UI = {};
+CONFIG_UI.apiKey = { get: function(el) { return el.value.trim(); } };
+CONFIG_UI.thinkingEnabled = {
+  get: function(el) { return el.checked; },
+  set: function(el, v) { el.checked = v; }
+};
+CONFIG_UI.temperature = {
+  get: function(el) { var v = parseFloat(el.value); return isNaN(v) ? null : v; }
+};
+
 /* ---- Config sync & save ---- */
 
 /** Iterate CONFIG_SCHEMA to sync state → UI. */
@@ -46,7 +58,8 @@ function syncConfigToUI() {
   App.forEachConfigSchemaItem(function(item) {
     var el = document.getElementById(item.elId);
     if (!el) return;
-    var setter = item.uiSet || function(el, v) { el.value = v; };
+    var uiMap = CONFIG_UI[item.prop];
+    var setter = (uiMap && uiMap.set) ? uiMap.set : function(el, v) { el.value = v; };
     setter(el, App.state.config[item.prop]);
   });
   if (App.DomRefs.systemPromptModal && !App.DomRefs.systemPromptModal.classList.contains('u-none')) {
@@ -60,7 +73,8 @@ function saveConfiguration() {
   App.forEachConfigSchemaItem(function(item) {
     var el = document.getElementById(item.elId);
     if (!el) return;
-    var getter = item.uiGet || function(el) { return el.value; };
+    var uiMap = CONFIG_UI[item.prop];
+    var getter = (uiMap && uiMap.get) ? uiMap.get : function(el) { return el.value; };
     var val = getter(el);
     if (val !== null) App.state.config[item.prop] = val;
   });
@@ -77,4 +91,3 @@ App.syncConfigToUI = syncConfigToUI;
 App.saveConfiguration = saveConfiguration;
 
 })();
-

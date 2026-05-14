@@ -49,7 +49,7 @@ async function streamWithAbort(requestBody, contentCallback, reasoningCallback) 
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${App.state.config.apiKey}`
+        'Authorization': 'Bearer ' + App.state.config.apiKey
       },
       body: JSON.stringify(requestBody),
       signal: controller.signal
@@ -100,4 +100,3 @@ App.buildRequestBody = buildRequestBody;
 App.streamWithAbort = streamWithAbort;
 
 })();
-

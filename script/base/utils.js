@@ -12,7 +12,7 @@ function setHidden(element, hidden) {
   element.classList.toggle('u-none', hidden);
 }
 
-/* Set status bar text, optionally reset after N ms. */
+/** Set status bar text, optionally reset after N ms. */
 function setStatus(text, resetAfterMs) {
   if (resetAfterMs === undefined) resetAfterMs = 0;
   if (!App.DomRefs.statusSpan) return;
@@ -31,7 +31,7 @@ function errorStatus(message) {
   setStatus(App.STATUS.ERROR_PREFIX + message);
 }
 
-/* Format a message timestamp to HH:MM. */
+/** Format a message timestamp to HH:MM. */
 function formatMessageTime(createdAt) {
   var date = createdAt ? new Date(createdAt) : new Date();
   if (isNaN(date.getTime())) return '--:--';
@@ -96,6 +96,13 @@ function evaluateScrollToBottom() {
   }
 }
 
+/** Wrap an async function so errors are automatically displayed. */
+function safeAsync(fn) {
+  return function() {
+    return fn.apply(this, arguments).catch(function(e) { App.errorStatus(e.message); });
+  };
+}
+
 App.setHidden = setHidden;
 App.setStatus = setStatus;
 App.errorStatus = errorStatus;
@@ -103,5 +110,6 @@ App.formatMessageTime = formatMessageTime;
 App.autoResizeTextarea = autoResizeTextarea;
 App.preserveScrollPosition = preserveScrollPosition;
 App.evaluateScrollToBottom = evaluateScrollToBottom;
+App.safeAsync = safeAsync;
 
 })();

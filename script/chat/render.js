@@ -7,18 +7,18 @@
 (function() {
 var App = window.App = window.App || {};
 
-/* === Item-level rendering === */
+/* ---- Item-level rendering ---- */
 
 /* ---- Reasoning block DOM rendering ---- */
 
-function createReasoningHeader(initialCollapsed) {
+function createReasoningHeader() {
   var header = document.createElement('div');
   header.className = 'reasoning-header';
   var title = document.createElement('span');
   title.innerText = App.UI.REASONING_TITLE;
   var stateSpan = document.createElement('span');
   stateSpan.className = 'reasoning-header-state';
-  stateSpan.innerText = initialCollapsed ? App.UI.REASONING_COLLAPSED : App.UI.REASONING_EXPANDED;
+  stateSpan.innerText = App.UI.REASONING_EXPANDED;
   header.appendChild(title);
   header.appendChild(document.createTextNode(' '));
   header.appendChild(stateSpan);
@@ -28,7 +28,7 @@ function createReasoningHeader(initialCollapsed) {
 function createReasoningBlockDOM(reasoningContent) {
   var reasoningDiv = document.createElement('div');
   reasoningDiv.className = 'reasoning-block';
-  var hdr = createReasoningHeader(false);
+  var hdr = createReasoningHeader();
   var contentDiv = document.createElement('div');
   contentDiv.className = 'reasoning-text prose-content';
   contentDiv.innerHTML = App.renderMarkdownToHTML(reasoningContent);
@@ -51,6 +51,13 @@ function isMessageStreaming(msg) {
   return msg.id === App.state.activeGeneratingMessageId &&
     !(msg.content && msg.content.length > 0) &&
     !(msg.reasoning_content && msg.reasoning_content.length > 0);
+}
+
+/** Shared content HTML: typing indicator during streaming, rendered markdown otherwise. */
+function getMessageContentHTML(msg) {
+  return isMessageStreaming(msg)
+    ? '<span class="typing-indicator"></span>'
+    : App.renderMarkdownToHTML(msg.content);
 }
 
 /* ---- Action icon button factory ---- */
@@ -141,7 +148,7 @@ function renderMessageActions(msg, contentDiv) {
   sep1.className = 'action-sep';
   actionsDiv.appendChild(sep1);
 
-  var genBtn = createActionIconBtn(App.UI.ACTION_GENERATE, App.ICONS.generate, function () { App.generateNewResponse(msg.id).catch(function(e) { App.errorStatus(e.message); }); }, 'gen-action');
+  var genBtn = createActionIconBtn(App.UI.ACTION_GENERATE, App.ICONS.generate, App.safeAsync(function () { return App.generateNewResponse(msg.id); }), 'gen-action');
   genBtn.disabled = App.state.isGenerating;
   actionsDiv.appendChild(genBtn);
 
@@ -149,10 +156,10 @@ function renderMessageActions(msg, contentDiv) {
     var sep2 = document.createElement('span');
     sep2.className = 'action-sep';
     actionsDiv.appendChild(sep2);
-    var prefixBtn = createActionIconBtn(App.UI.ACTION_PREFIX, App.ICONS.prefix, function () { App.prefixCompletion(msg.id).catch(function(e) { App.errorStatus(e.message); }); }, 'gen-action');
+    var prefixBtn = createActionIconBtn(App.UI.ACTION_PREFIX, App.ICONS.prefix, App.safeAsync(function () { return App.prefixCompletion(msg.id); }), 'gen-action');
     prefixBtn.disabled = App.state.isGenerating;
     actionsDiv.appendChild(prefixBtn);
-    var regenBtn = createActionIconBtn(App.UI.ACTION_REGENERATE, App.ICONS.regenerate, function () { App.regenerateAssistant(msg.id).catch(function(e) { App.errorStatus(e.message); }); }, 'gen-action');
+    var regenBtn = createActionIconBtn(App.UI.ACTION_REGENERATE, App.ICONS.regenerate, App.safeAsync(function () { return App.regenerateAssistant(msg.id); }), 'gen-action');
     regenBtn.disabled = App.state.isGenerating;
     actionsDiv.appendChild(regenBtn);
   }
@@ -174,13 +181,7 @@ function renderMessageItem(msg) {
 
   var contentDiv = document.createElement('div');
   contentDiv.className = 'msg-content prose-content';
-
-  if (isMessageStreaming(msg)) {
-    contentDiv.innerHTML = '<span class="typing-indicator"></span>';
-  } else {
-    contentDiv.innerHTML = App.renderMarkdownToHTML(msg.content);
-  }
-
+  contentDiv.innerHTML = getMessageContentHTML(msg);
   msgDiv.appendChild(contentDiv);
 
   var actionsDiv = renderMessageActions(msg, contentDiv);
@@ -190,7 +191,7 @@ function renderMessageItem(msg) {
   return { msgDiv: msgDiv, contentDiv: contentDiv, actionsDiv: actionsDiv };
 }
 
-/* === Top-level rendering & edit-mode UI === */
+/* ---- Top-level rendering & edit-mode UI ---- */
 
 /** Build inline-edit UI (textarea + save/cancel) inside a message content div. */
 function createEditModeUI(msg, contentDiv, actionsDiv) {
@@ -217,23 +218,15 @@ function createEditModeUI(msg, contentDiv, actionsDiv) {
 
   App.autoResizeTextarea(textarea);
 
-  if (actionsDiv) actionsDiv.style.opacity = '0';
+  if (actionsDiv) {
+    actionsDiv.style.opacity = '0';
+  }
   textarea.focus();
 
   return { textarea: textarea, saveBtn: saveBtn, cancelBtn: cancelBtn };
 }
 
-function renderEmptyState() {
-  var container = App.DomRefs.chatContainer;
-  container.innerHTML = '';
-
-  var emptyState = document.createElement('div');
-  emptyState.className = 'empty-state';
-
-  var title = document.createElement('div');
-  title.className = 'empty-state-title';
-  title.innerText = App.UI.EMPTY_TITLE;
-
+function createEmptyStateInputRow() {
   var inputRow = document.createElement('div');
   inputRow.className = 'empty-input-row';
 
@@ -259,7 +252,6 @@ function renderEmptyState() {
   sendBtn.innerText = App.UI.BTN_SEND;
 
   sendBtn.onclick = function () {
-    if (!textarea.value.trim()) return;
     App.addUserMessage(textarea.value);
     App.renderMessages();
   };
@@ -269,11 +261,25 @@ function renderEmptyState() {
   inputRow.appendChild(spacer);
   inputRow.appendChild(inputWrapper);
   inputRow.appendChild(sendBtn);
-  emptyState.appendChild(title);
-  emptyState.appendChild(inputRow);
-  container.appendChild(emptyState);
 
   App.autoResizeTextarea(textarea, { minHeight: App.CFG.TEXTAREA_MIN_HEIGHT, maxHeight: App.CFG.TEXTAREA_MAX_HEIGHT, clampOverflow: true });
+  return inputRow;
+}
+
+function renderEmptyState() {
+  var container = App.DomRefs.chatContainer;
+  container.innerHTML = '';
+
+  var emptyState = document.createElement('div');
+  emptyState.className = 'empty-state';
+
+  var title = document.createElement('div');
+  title.className = 'empty-state-title';
+  title.innerText = App.UI.EMPTY_TITLE;
+
+  emptyState.appendChild(title);
+  emptyState.appendChild(createEmptyStateInputRow());
+  container.appendChild(emptyState);
 }
 
 /* ---- Main render entry point ---- */
@@ -283,6 +289,7 @@ function renderMessages() {
 
   if (App.state.messages.length === 0) {
     renderEmptyState();
+    requestAnimationFrame(function () { App.evaluateScrollToBottom(); });
     return;
   }
 
@@ -308,16 +315,16 @@ function upsertReasoningBlock(msgDiv, msg) {
     msgDiv.insertBefore(reasoningDiv, existingContent);
   } else {
     var textDiv = reasoningDiv.querySelector('.reasoning-text');
-    if (textDiv) textDiv.innerHTML = App.renderMarkdownToHTML(msg.reasoning_content);
+    if (textDiv) {
+      textDiv.innerHTML = App.renderMarkdownToHTML(msg.reasoning_content);
+    }
   }
 }
 
 function updateContentHtml(msgDiv, msg) {
   var contentDiv = msgDiv.querySelector('.msg-content');
   if (!contentDiv || contentDiv.querySelector('textarea')) return;
-  contentDiv.innerHTML = isMessageStreaming(msg)
-    ? '<span class="typing-indicator"></span>'
-    : App.renderMarkdownToHTML(msg.content);
+  contentDiv.innerHTML = getMessageContentHTML(msg);
 }
 
 function syncActionsVisibility(msgDiv, msg) {
@@ -352,7 +359,9 @@ function refreshMessageDOM(msgId) {
   if (!msg) return;
   var oldDiv = App.getMessageElement(msgId);
   if (!oldDiv) {
-    if (App.state.messages.length === 0) renderEmptyState();
+    if (App.state.messages.length === 0) {
+      renderEmptyState();
+    }
     else App.renderMessages();
     return;
   }
@@ -370,5 +379,3 @@ App.refreshMessageDOM = refreshMessageDOM;
 App.renderEmptyState = renderEmptyState;
 
 })();
-
-

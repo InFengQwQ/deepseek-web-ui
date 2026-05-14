@@ -47,7 +47,8 @@ function appendAssistantVersion(msg, initialVersion) {
   applyCurrentVersion(msg);
   msg.versions.push(cloneVersionEntry(initialVersion));
   msg.currentVersionIndex = msg.versions.length - 1;
-  return applyCurrentVersion(msg) ? msg.currentVersionIndex : null;
+  applyCurrentVersion(msg);
+  return msg.currentVersionIndex;
 }
 
 /** Switch assistant message version index, persist, and re-render. */

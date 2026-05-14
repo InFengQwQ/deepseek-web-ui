@@ -1,9 +1,35 @@
 /* ================================================================
    dom.js — DOM element references (initialized at bootstrap)
+
+   IDS: single map of element IDs used by index.html.
+   Update here first when changing an ID in the HTML.
    ================================================================ */
 
 (function() {
 var App = window.App = window.App || {};
+
+/** Centralized ID map — change an ID here and it propagates everywhere. */
+var IDS = {
+  chatContainer: 'chatContainer',
+  statusMsg: 'statusMsg',
+  stopGenBtn: 'stopGenBtn',
+  scrollToBottomBtn: 'scrollToBottomBtn',
+  apiKeyInput: 'apiKeyInput',
+  modelSelect: 'modelSelect',
+  thinkingToggle: 'thinkingToggle',
+  effortSelect: 'effortSelect',
+  tempInput: 'tempInput',
+  systemPromptInput: 'systemPromptInput',
+  systemPromptBtn: 'systemPromptBtn',
+  systemPromptModal: 'systemPromptModal',
+  systemPromptCloseBtn: 'systemPromptCloseBtn',
+  effortField: 'effortField',
+  tempField: 'tempField',
+  saveConfigBtn: 'saveConfigBtn',
+  clearHistoryBtn: 'clearHistoryBtn',
+  exportBtn: 'exportBtn',
+  importBtn: 'importBtn'
+};
 
 App.DomRefs = {
   chatContainer: null,
@@ -35,25 +61,25 @@ function getMessageElement(msgId) {
 }
 
 function initDomRefs() {
-  DomRefs.chatContainer = document.getElementById('chatContainer');
-  DomRefs.statusSpan = document.getElementById('statusMsg');
-  DomRefs.stopBtn = document.getElementById('stopGenBtn');
-  DomRefs.scrollToBottomBtn = document.getElementById('scrollToBottomBtn');
-  DomRefs.apiKeyInput = document.getElementById('apiKeyInput');
-  DomRefs.modelSelect = document.getElementById('modelSelect');
-  DomRefs.thinkingToggle = document.getElementById('thinkingToggle');
-  DomRefs.effortSelect = document.getElementById('effortSelect');
-  DomRefs.tempInput = document.getElementById('tempInput');
-  DomRefs.systemPromptInput = document.getElementById('systemPromptInput');
-  DomRefs.systemPromptBtn = document.getElementById('systemPromptBtn');
-  DomRefs.systemPromptModal = document.getElementById('systemPromptModal');
-  DomRefs.systemPromptCloseBtn = document.getElementById('systemPromptCloseBtn');
-  DomRefs.effortField = document.getElementById('effortField');
-  DomRefs.tempField = document.getElementById('tempField');
-  DomRefs.saveBtn = document.getElementById('saveConfigBtn');
-  DomRefs.clearBtn = document.getElementById('clearHistoryBtn');
-  DomRefs.exportBtn = document.getElementById('exportBtn');
-  DomRefs.importBtn = document.getElementById('importBtn');
+  DomRefs.chatContainer       = document.getElementById(IDS.chatContainer);
+  DomRefs.statusSpan          = document.getElementById(IDS.statusMsg);
+  DomRefs.stopBtn             = document.getElementById(IDS.stopGenBtn);
+  DomRefs.scrollToBottomBtn   = document.getElementById(IDS.scrollToBottomBtn);
+  DomRefs.apiKeyInput         = document.getElementById(IDS.apiKeyInput);
+  DomRefs.modelSelect         = document.getElementById(IDS.modelSelect);
+  DomRefs.thinkingToggle      = document.getElementById(IDS.thinkingToggle);
+  DomRefs.effortSelect        = document.getElementById(IDS.effortSelect);
+  DomRefs.tempInput           = document.getElementById(IDS.tempInput);
+  DomRefs.systemPromptInput   = document.getElementById(IDS.systemPromptInput);
+  DomRefs.systemPromptBtn     = document.getElementById(IDS.systemPromptBtn);
+  DomRefs.systemPromptModal   = document.getElementById(IDS.systemPromptModal);
+  DomRefs.systemPromptCloseBtn = document.getElementById(IDS.systemPromptCloseBtn);
+  DomRefs.effortField         = document.getElementById(IDS.effortField);
+  DomRefs.tempField           = document.getElementById(IDS.tempField);
+  DomRefs.saveBtn             = document.getElementById(IDS.saveConfigBtn);
+  DomRefs.clearBtn            = document.getElementById(IDS.clearHistoryBtn);
+  DomRefs.exportBtn           = document.getElementById(IDS.exportBtn);
+  DomRefs.importBtn           = document.getElementById(IDS.importBtn);
   return DomRefs;
 }
 

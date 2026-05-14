@@ -1,5 +1,18 @@
 /* ================================================================
    markdown.js — Markdown → HTML rendering pipeline
+
+   Pipeline stages (in order):
+     1. protectCodeBlocks  — replace fenced/inline code with %%CODE_N%% placeholders
+     2. protectMath        — replace $...$, $$...$$, \(...\), \[...\] with %%MATH_N%%
+     3. marked.parse       — parse remaining plain Markdown to HTML
+     4a. restoreMathPlaceholders  — render %%MATH_N%% via KaTeX → MathML
+     4b. restoreCodePlaceholders  — encode %%CODE_N%% as <pre><code> / <code>
+     4c. sanitizeHtml      — DOMPurify sanitize (allows MathML tags/attrs)
+
+   Why placeholders? Marked would mangle LaTeX delimiters and code fence
+   contents. Protecting them before Marked ensures KaTeX and syntax
+   highlighting work correctly.
+
    Depends on: marked.js, DOMPurify, KaTeX (global CDN scripts)
    ================================================================ */
 

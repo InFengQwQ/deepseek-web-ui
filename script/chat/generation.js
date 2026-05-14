@@ -49,7 +49,11 @@ async function runAssistantTask(requestBody, msgId, loadingText, doneText, optio
     App.setStatus(doneText);
   } catch (err) {
     App.persistMessages();
-    if (err.message === 'ABORTED') { App.setStatus(App.STATUS.STOPPED); } else { App.errorStatus(err.message); }
+    if (err.message === 'ABORTED') {
+      App.setStatus(App.STATUS.STOPPED);
+    } else {
+      App.errorStatus(err.message);
+    }
   } finally {
     cleanupGeneration();
     App.updateSingleMessageDOM(msgId);

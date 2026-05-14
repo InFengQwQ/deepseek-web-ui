@@ -29,6 +29,7 @@ function messageCoreFields(msg) {
 
 function serializeMessageRecord(msg) {
   var record = messageCoreFields(msg);
+  record.id = msg.id;
   if (msg.role === 'assistant') {
     if (Array.isArray(msg.versions)) record.versions = msg.versions.map(App.cloneVersionEntry);
     if (Number.isInteger(msg.currentVersionIndex)) record.currentVersionIndex = msg.currentVersionIndex;
@@ -51,11 +52,11 @@ function createMessage(role, content, options) {
 }
 
 function findMessageById(messageId) {
-  return App.state.messages.find(function (m) { return m.id === messageId; }) || null;
+  return App.state.messages.find(function(m) { return m.id === messageId; }) || null;
 }
 
 function findMessageIndexById(messageId) {
-  return App.state.messages.findIndex(function (m) { return m.id === messageId; });
+  return App.state.messages.findIndex(function(m) { return m.id === messageId; });
 }
 
 function toApiMessage(msg) {
@@ -63,15 +64,6 @@ function toApiMessage(msg) {
 }
 
 /* ---- localStorage persistence ---- */
-
-function persistMessages() {
-  var toStore = App.state.messages.map(function (m) {
-    var record = serializeMessageRecord(m);
-    record.id = m.id;
-    return record;
-  });
-  localStorage.setItem(App.STORAGE_KEYS.messages, JSON.stringify(toStore));
-}
 
 function loadMessagesFromStorage() {
   var stored = localStorage.getItem(App.STORAGE_KEYS.messages);
@@ -100,25 +92,27 @@ function normalizeMessageRecord(msg) {
   }
   return normalized;
 }
+
 function addUserMessage(content) {
   var msg = createMessage('user', content);
   App.state.addMessage(msg);
   return msg;
 }
 
+/** Persist messages to localStorage, reusing serializeMessageRecord. */
+function persistMessages() {
+  var toStore = App.state.messages.map(serializeMessageRecord);
+  localStorage.setItem(App.STORAGE_KEYS.messages, JSON.stringify(toStore));
+}
+
 App.serializeMessageRecord = serializeMessageRecord;
+App.persistMessages = persistMessages;
 App.createMessage = createMessage;
 App.findMessageById = findMessageById;
 App.findMessageIndexById = findMessageIndexById;
 App.toApiMessage = toApiMessage;
-App.persistMessages = persistMessages;
 App.loadMessagesFromStorage = loadMessagesFromStorage;
 App.normalizeMessageRecord = normalizeMessageRecord;
 App.addUserMessage = addUserMessage;
-
-// Register explicit persistence callback via state API
-if (App.state && typeof App.state.setPersistCallback === 'function') {
-  App.state.setPersistCallback(persistMessages);
-}
 
 })();

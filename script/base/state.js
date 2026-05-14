@@ -95,13 +95,10 @@ api.setAbortController = function(ctrl) {
   api.currentAbortController = ctrl;
 };
 
-/** Register the explicit persistence callback (called by messages.js at init). */
-api.setPersistCallback = function(fn) {
-  api._persist = fn;
-};
-api._persist = null;
+/** Delegates to App.persistMessages (defined in messages.js).
+ *  Safe to call lazily — App.persistMessages is available by bootstrap time. */
 api._autoPersist = function() {
-  if (typeof api._persist === 'function') api._persist();
+  App.persistMessages();
 };
 
 App.persistConfig = persistConfig;
