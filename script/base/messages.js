@@ -36,7 +36,7 @@ function createMessage(role, content, options) {
   if (content === undefined) content = '';
   if (options === undefined) options = {};
   var fields = sanitizeMessageFields({ role: role, content: content, reasoning_content: options.reasoning_content, createdAt: options.createdAt });
-  return {
+  var msg = {
     id: Number.isFinite(options.id) ? options.id : App.state.nextId++,
     role: fields.role,
     content: fields.content,
@@ -44,6 +44,11 @@ function createMessage(role, content, options) {
     createdAt: fields.createdAt,
     _isNew: !!options.isNew
   };
+  if (msg.role === 'assistant') {
+    msg.versions = [App.cloneVersionEntry(msg)];
+    msg.currentVersionIndex = 0;
+  }
+  return msg;
 }
 
 function findMessageById(messageId) {

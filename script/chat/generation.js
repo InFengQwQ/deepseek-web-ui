@@ -64,7 +64,6 @@ function startGeneration(requestBody, msgId, options) {
   App.state.beginGeneration(msgId);
   App.syncGenButtonStates();
   App.refreshMessageDOM(msgId);
-  App.persistMessages();
   return runAssistantTask(requestBody, msgId, App.STATUS.GENERATING, App.STATUS.DONE, options);
 }
 

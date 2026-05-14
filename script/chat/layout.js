@@ -54,7 +54,9 @@ function refreshMessageDOM(msgId) {
     return;
   }
   var parts = App.renderMessageItem(msg);
-  oldDiv.parentNode.replaceChild(parts.msgDiv, oldDiv);
+  App.preserveScrollPosition(App.DomRefs.chatContainer, function () {
+    oldDiv.parentNode.replaceChild(parts.msgDiv, oldDiv);
+  });
   App.evaluateScrollToBottom();
 }
 
