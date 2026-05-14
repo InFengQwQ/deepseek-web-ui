@@ -5,6 +5,14 @@
 (function() {
 var App = window.App = window.App || {};
 
+function triggerImportDialog() {
+  var input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.onchange = function (e) { if (e.target.files[0]) App.importConversation(e.target.files[0]); };
+  input.click();
+}
+
 /* ---- Clear all messages ---- */
 
 function clearAllMessages() {
@@ -38,15 +46,7 @@ function importConversation(file) {
       var msgs = imported.messages;
       if (!Array.isArray(msgs)) throw new Error('无效格式');
       var newMsgs = msgs.map(function (msg) {
-        return App.normalizeMessageRecord({
-          id: App.state.nextId++,
-          role: msg.role,
-          content: msg.content,
-          reasoning_content: msg.reasoning_content || null,
-          createdAt: msg.createdAt,
-          versions: msg.versions,
-          currentVersionIndex: msg.currentVersionIndex
-        });
+        return App.normalizeMessageRecord(Object.assign({}, msg, { id: App.state.nextId++ }));
       });
       App.state.replaceMessages(newMsgs);
       App.renderMessages();
@@ -130,6 +130,7 @@ function deleteMessage(msgId) {
   }
 }
 
+App.triggerImportDialog = triggerImportDialog;
 App.clearAllMessages = clearAllMessages;
 App.exportConversation = exportConversation;
 App.importConversation = importConversation;

@@ -15,20 +15,20 @@ function setHidden(element, hidden) {
 /** Set status bar text, optionally reset after N ms. */
 function setStatus(text, resetAfterMs) {
   if (resetAfterMs === undefined) resetAfterMs = 0;
-  if (!App.DomRefs.statusSpan) return;
-  App.DomRefs.statusSpan.innerText = text;
+  if (!App.DomRefs.statusMsg) return;
+  App.DomRefs.statusMsg.innerText = text;
   if (resetAfterMs > 0) {
     setTimeout(function () {
-      if (App.DomRefs.statusSpan && App.DomRefs.statusSpan.innerText === text) {
-        App.DomRefs.statusSpan.innerText = App.STATUS.IDLE;
+      if (App.DomRefs.statusMsg && App.DomRefs.statusMsg.innerText === text) {
+        App.DomRefs.statusMsg.innerText = App.STATUS.IDLE;
       }
     }, resetAfterMs);
   }
 }
 
 /** Convenience: set status to an error message with the standard prefix. */
-function errorStatus(message) {
-  setStatus(App.STATUS.ERROR_PREFIX + message);
+function errorStatus(message, resetAfterMs) {
+  setStatus(App.STATUS.ERROR_PREFIX + message, resetAfterMs);
 }
 
 /** Format a message timestamp to HH:MM. */
@@ -96,10 +96,17 @@ function evaluateScrollToBottom() {
   }
 }
 
-/** Wrap an async function so errors are automatically displayed. */
+/** Wrap a function so errors (sync or async) are automatically displayed. */
 function safeAsync(fn) {
   return function() {
-    return fn.apply(this, arguments).catch(function(e) { App.errorStatus(e.message); });
+    try {
+      var result = fn.apply(this, arguments);
+      if (result && typeof result.catch === 'function') {
+        return result.catch(function(e) { App.errorStatus(e.message); });
+      }
+    } catch (e) {
+      App.errorStatus(e.message);
+    }
   };
 }
 

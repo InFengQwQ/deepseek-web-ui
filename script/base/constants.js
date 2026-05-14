@@ -70,7 +70,8 @@ App.CFG = {
   API_BASE_URL: 'https://api.deepseek.com/beta/chat/completions'
 };
 
-/** Single source of truth: config property → storage key, default, UI element, uiGet/uiSet. */
+/** Single source of truth: config property → storage key, default, UI element, uiGet/uiSet.
+ *  elId values must match keys in dom.js IDS map. */
 /** Iterate every CONFIG_SCHEMA entry with a callback(item). */
 App.forEachConfigSchemaItem = function(fn) {
   for (var i = 0; i < App.CONFIG_SCHEMA.length; i++) {
@@ -79,11 +80,11 @@ App.forEachConfigSchemaItem = function(fn) {
 };
 
 App.CONFIG_SCHEMA = [
-  { prop: 'apiKey',           key: App.STORAGE_KEYS.apiKey,           def: '',                        parse: null,                  elId: 'apiKeyInput' },
+  { prop: 'apiKey',           key: App.STORAGE_KEYS.apiKey,           def: '',                        parse: null,                  elId: 'apiKeyInput',         uiGet: function(el) { return el.value.trim(); } },
   { prop: 'model',            key: App.STORAGE_KEYS.model,            def: 'deepseek-v4-pro',         parse: null,                  elId: 'modelSelect' },
-  { prop: 'thinkingEnabled',  key: App.STORAGE_KEYS.thinking,         def: false,                      parse: function(v) { return v === 'true'; },  elId: 'thinkingToggle' },
+  { prop: 'thinkingEnabled',  key: App.STORAGE_KEYS.thinking,         def: false,                      parse: function(v) { return v === 'true'; },  elId: 'thinkingToggle',      uiGet: function(el) { return el.checked; }, uiSet: function(el, v) { el.checked = v; } },
   { prop: 'reasoningEffort',  key: App.STORAGE_KEYS.reasoningEffort,  def: 'max',                      parse: null,                  elId: 'effortSelect' },
-  { prop: 'temperature',      key: App.STORAGE_KEYS.temperature,      def: App.CFG.API_DEFAULT_TEMP,   parse: parseFloat,            elId: 'tempInput' },
+  { prop: 'temperature',      key: App.STORAGE_KEYS.temperature,      def: App.CFG.API_DEFAULT_TEMP,   parse: parseFloat,            elId: 'tempInput',           uiGet: function(el) { var v = parseFloat(el.value); return isNaN(v) ? null : v; } },
   { prop: 'systemPrompt',     key: App.STORAGE_KEYS.systemPrompt,     def: '',                        parse: null,                  elId: 'systemPromptInput' }
 ];
 

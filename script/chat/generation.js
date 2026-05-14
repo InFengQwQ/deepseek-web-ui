@@ -11,7 +11,7 @@ var App = window.App = window.App || {};
 function cleanupGeneration() {
   App.state.endGeneration();
   App.syncGenButtonStates();
-  App.setHidden(App.DomRefs.stopBtn, true);
+  App.setHidden(App.DomRefs.stopGenBtn, true);
 }
 
 /** Orchestrate a streaming generation task: UI setup → stream → finalize. */
@@ -21,7 +21,7 @@ async function runAssistantTask(requestBody, msgId, loadingText, doneText, optio
   var originalContent = options.originalContent || '';
   var versionIndex = Number.isInteger(options.versionIndex) ? options.versionIndex : null;
 
-  App.setHidden(App.DomRefs.stopBtn, false);
+  App.setHidden(App.DomRefs.stopGenBtn, false);
   App.setStatus(loadingText);
   var fullContent = '';
 
@@ -76,9 +76,7 @@ function stopGeneration() {
   if (App.state.currentAbortController) {
     App.state.currentAbortController.abort();
   }
-  App.state.endGeneration();
-  App.syncGenButtonStates();
-  App.setHidden(App.DomRefs.stopBtn, true);
+  cleanupGeneration();
   if (msgId != null) App.updateSingleMessageDOM(msgId);
 }
 

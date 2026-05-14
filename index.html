@@ -11,6 +11,29 @@
     instead of ES modules (import/export). Reason: the app is opened via the
     file:// protocol in a local browser, which blocks ES module requests due
     to strict CORS / opaque-origin policies.
+
+    SCRIPT LOAD ORDER (defer preserves order; each file depends on all above):
+      ┌─ base/ (infrastructure, no mutual deps internally)
+      │  dom.js          → App.DomRefs, App.initDomRefs, App.getMessageElement
+      │  markdown.js     → App.renderMarkdownToHTML
+      │  constants.js    → App.STORAGE_KEYS, App.STATUS, App.UI, App.CFG, App.CONFIG_SCHEMA
+      │  icons.js        → App.ICONS (SVG strings)
+      │  utils.js        → App.setHidden, setStatus, errorStatus, formatMessageTime, autoResizeTextarea, etc.
+      │  state.js        → App.state (messages, config, generation flags) + mutation API
+      │  versions.js     → App.getVersionInfo, cloneVersionEntry, applyCurrentVersion, etc.
+      │  messages.js     → App.createMessage, findMessageById, persistMessages, normalizeMessageRecord, etc.
+      ├─ chat/ (feature layer)
+      │  actionbar.js    → App.createActionIconBtn, App.syncGenButtonStates
+      │  reasoning.js    → App.createReasoningBlockDOM, App.upsertReasoningBlock
+      │  editor.js       → App.createEditModeUI, App.createEmptyStateInputRow
+      │  msgcard.js      → App.renderMessageItem, App.getMessageContentHTML
+      │  layout.js       → App.renderMessages, renderEmptyState, updateSingleMessageDOM, refreshMessageDOM
+      │  api.js          → App.buildRequestBody, App.streamWithAbort
+      │  config.js       → App.syncConfigToUI, App.saveConfiguration
+      │  generation.js   → App.generateNewResponse, prefixCompletion, regenerateAssistant, stopGeneration
+      │  actions.js      → App.clearAllMessages, export/import, insertUserMessageAfter, editMessage, deleteMessage
+      ├─ base/events.js  → App.bindAllEvents (last: needs all handlers registered)
+      └─ app.js          → bootstrapApp (final entry point)
   -->
 </head>
 <body>
@@ -98,11 +121,16 @@
   <script src="script/base/state.js" defer></script>
   <script src="script/base/versions.js" defer></script>
   <script src="script/base/messages.js" defer></script>
-  <script src="script/chat/render.js" defer></script>
+  <script src="script/chat/actionbar.js" defer></script>
+  <script src="script/chat/reasoning.js" defer></script>
+  <script src="script/chat/editor.js" defer></script>
+  <script src="script/chat/msgcard.js" defer></script>
+  <script src="script/chat/layout.js" defer></script>
   <script src="script/chat/api.js" defer></script>
   <script src="script/base/config.js" defer></script>
   <script src="script/chat/generation.js" defer></script>
   <script src="script/chat/actions.js" defer></script>
   <script src="script/base/events.js" defer></script>
+  <script src="script/app.js" defer></script>
 </body>
 </html>

@@ -65,14 +65,14 @@ async function streamWithAbort(requestBody, contentCallback, reasoningCallback) 
     var buffer = '';
 
     while (true) {
-      var done_value = await reader.read();
-      if (done_value.done) break;
-      buffer += decoder.decode(done_value.value, { stream: true });
+      var result = await reader.read();
+      if (result.done) break;
+      buffer += decoder.decode(result.value, { stream: true });
       var lines = buffer.split('\n');
       buffer = lines.pop() || '';
 
-      for (var li = 0; li < lines.length; li++) {
-        var line = lines[li];
+      for (var i = 0; i < lines.length; i++) {
+        var line = lines[i];
         var trimmed = line.trim();
         if (!trimmed || trimmed === 'data: [DONE]') continue;
         if (trimmed.startsWith('data: ')) {

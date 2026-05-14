@@ -95,10 +95,9 @@ api.setAbortController = function(ctrl) {
   api.currentAbortController = ctrl;
 };
 
-/** Delegates to App.persistMessages (defined in messages.js).
- *  Safe to call lazily — App.persistMessages is available by bootstrap time. */
+/** Delegates to App.persistMessages (defined in messages.js). */
 api._autoPersist = function() {
-  App.persistMessages();
+  if (App.persistMessages) App.persistMessages();
 };
 
 App.persistConfig = persistConfig;

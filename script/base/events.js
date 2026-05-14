@@ -17,19 +17,13 @@ function bindAllEvents() {
       App.closeSystemPromptModal();
     }
   });
-  App.DomRefs.saveBtn.onclick = App.saveConfiguration;
+  App.DomRefs.saveConfigBtn.onclick = App.saveConfiguration;
 
   /* ---- Chat action buttons ---- */
-  App.DomRefs.clearBtn.onclick = App.clearAllMessages;
+  App.DomRefs.clearHistoryBtn.onclick = App.clearAllMessages;
   App.DomRefs.exportBtn.onclick = App.exportConversation;
-  App.DomRefs.importBtn.onclick = function () {
-    var input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.json';
-    input.onchange = function (e) { if (e.target.files[0]) App.importConversation(e.target.files[0]); };
-    input.click();
-  };
-  App.DomRefs.stopBtn.onclick = App.stopGeneration;
+  App.DomRefs.importBtn.onclick = App.triggerImportDialog;
+  App.DomRefs.stopGenBtn.onclick = App.stopGeneration;
 
   /* ---- Scroll ---- */
   var scrollTicking = false;
@@ -49,21 +43,5 @@ function bindAllEvents() {
 
 App.bindAllEvents = bindAllEvents;
 
-/* ---- Bootstrap (merged from app.js) ---- */
-
-function bootstrapApp() {
-  try {
-    App.initDomRefs();
-    App.loadMessagesFromStorage();
-    App.syncConfigToUI();
-    App.renderMessages();
-    bindAllEvents();
-  } catch (e) {
-    console.error('Bootstrap failed:', e);
-    if (App.DomRefs.statusSpan) App.DomRefs.statusSpan.innerText = App.STATUS.BOOTSTRAP_ERROR_PREFIX + (e.message || e);
-  }
-}
-
-bootstrapApp();
 
 })();

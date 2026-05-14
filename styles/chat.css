@@ -216,6 +216,40 @@
   fill: #fff;
 }
 
+/* === Action icon buttons (message-level) === */
+
+.icon-btn,
+.action-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  background: transparent;
+  border: none;
+  padding: 0.2rem;
+  color: var(--text-muted);
+  border-radius: 0.3rem;
+  box-shadow: none;
+}
+
+.icon-btn svg,
+.action-icon-btn svg {
+  width: 15px;
+  height: 15px;
+}
+
+.icon-btn:hover:not(:disabled),
+.action-icon-btn:hover:not(:disabled) {
+  background: #f1f5f9;
+  color: var(--text-secondary);
+}
+
+.icon-btn:disabled,
+.action-icon-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
 .scroll-to-bottom-btn {
   position: fixed;
   left: 2rem;
