@@ -64,8 +64,8 @@ function renderVersionNav(msg) {
   prevBtn.disabled = info.current <= 0;
   nextBtn.disabled = info.current >= info.count - 1;
 
-  prevBtn.onclick = function () { App.setAssistantVersion(msg, info.current - 1); };
-  nextBtn.onclick = function () { App.setAssistantVersion(msg, info.current + 1); };
+  prevBtn.onclick = App.safeAsync(function () { App.setAssistantVersion(msg, info.current - 1); });
+  nextBtn.onclick = App.safeAsync(function () { App.setAssistantVersion(msg, info.current + 1); });
 
   versionNav.appendChild(prevBtn);
   versionNav.appendChild(versionLabel);

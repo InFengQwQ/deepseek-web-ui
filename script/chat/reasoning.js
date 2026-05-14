@@ -28,13 +28,13 @@ function createReasoningBlockDOM(reasoningContent) {
   contentDiv.className = 'reasoning-text prose-content';
   contentDiv.innerHTML = App.renderMarkdownToHTML(reasoningContent);
   contentDiv.dataset.collapsed = '0';
-  hdr.header.onclick = function () {
+  hdr.header.onclick = App.safeAsync(function () {
     var collapsed = contentDiv.dataset.collapsed === '1';
     collapsed = !collapsed;
     contentDiv.dataset.collapsed = collapsed ? '1' : '0';
     App.setHidden(contentDiv, collapsed);
     hdr.stateSpan.innerText = collapsed ? App.UI.REASONING_COLLAPSED : App.UI.REASONING_EXPANDED;
-  };
+  });
   reasoningDiv.appendChild(hdr.header);
   reasoningDiv.appendChild(contentDiv);
   return reasoningDiv;

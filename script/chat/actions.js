@@ -95,7 +95,7 @@ function editMessage(msgId, contentDiv, actionsDiv, isNew) {
 
   var ui = App.createEditModeUI(msg, contentDiv, actionsDiv);
 
-  ui.saveBtn.onclick = function () {
+  ui.saveBtn.onclick = App.safeAsync(function () {
     var newContent = ui.textarea.value;
     if (msg.role === 'assistant') {
       var version = App.applyCurrentVersion(msg);
@@ -110,15 +110,15 @@ function editMessage(msgId, contentDiv, actionsDiv, isNew) {
     App.persistMessages();
     App.setStatus(isNew ? App.STATUS.INSERTED : App.STATUS.MODIFIED, App.CFG.STATUS_TIMEOUT_SHORT);
     App.refreshMessageDOM(msg.id);
-  };
+  });
 
-  ui.cancelBtn.onclick = function () {
+  ui.cancelBtn.onclick = App.safeAsync(function () {
     if (isNew) {
       deleteMessage(msg.id);
     } else {
       App.refreshMessageDOM(msg.id);
     }
-  };
+  });
 }
 
 function deleteMessage(msgId) {

@@ -44,7 +44,7 @@ function updateThinkingUI() {
 /** Iterate CONFIG_SCHEMA to sync state → UI. */
 function syncConfigToUI() {
   App.forEachConfigSchemaItem(function(item) {
-    var el = document.getElementById(item.elId);
+    var el = App.DomRefs[item.elId];
     if (!el) return;
     var setter = item.uiSet || function(el, v) { el.value = v; };
     setter(el, App.state.config[item.prop]);
@@ -58,7 +58,7 @@ function syncConfigToUI() {
 /** Iterate CONFIG_SCHEMA to save UI → state, then persist. */
 function saveConfiguration() {
   App.forEachConfigSchemaItem(function(item) {
-    var el = document.getElementById(item.elId);
+    var el = App.DomRefs[item.elId];
     if (!el) return;
     var getter = item.uiGet || function(el) { return el.value; };
     var val = getter(el);

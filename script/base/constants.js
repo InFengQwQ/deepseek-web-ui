@@ -72,7 +72,6 @@ App.CFG = {
 
 /** Single source of truth: config property → storage key, default, UI element, uiGet/uiSet.
  *  elId values must match keys in dom.js IDS map. */
-/** Iterate every CONFIG_SCHEMA entry with a callback(item). */
 App.forEachConfigSchemaItem = function(fn) {
   for (var i = 0; i < App.CONFIG_SCHEMA.length; i++) {
     fn(App.CONFIG_SCHEMA[i]);

@@ -45,16 +45,15 @@ async function runAssistantTask(requestBody, msgId, loadingText, doneText, optio
       }
     );
     // onComplete
-    App.persistMessages();
     App.setStatus(doneText);
   } catch (err) {
-    App.persistMessages();
     if (err.message === 'ABORTED') {
       App.setStatus(App.STATUS.STOPPED);
     } else {
       App.errorStatus(err.message);
     }
   } finally {
+    App.persistMessages();
     cleanupGeneration();
     App.updateSingleMessageDOM(msgId);
   }

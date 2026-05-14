@@ -19,12 +19,7 @@ function sanitizeMessageFields(source) {
 /* ---- Message creation & query ---- */
 
 function messageCoreFields(msg) {
-  return {
-    role: msg.role,
-    content: msg.content,
-    reasoning_content: msg.reasoning_content || null,
-    createdAt: msg.createdAt
-  };
+  return sanitizeMessageFields(msg);
 }
 
 function serializeMessageRecord(msg) {

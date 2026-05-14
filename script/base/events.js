@@ -10,20 +10,20 @@ function bindAllEvents() {
   /* ---- Config controls ---- */
   App.DomRefs.thinkingToggle.addEventListener('change', App.updateThinkingUI);
   App.DomRefs.systemPromptInput.addEventListener('input', App.scrollSystemPromptToBottom);
-  App.DomRefs.systemPromptBtn.onclick = App.openSystemPromptModal;
-  App.DomRefs.systemPromptCloseBtn.onclick = App.closeSystemPromptModal;
+  App.DomRefs.systemPromptBtn.onclick = App.safeAsync(App.openSystemPromptModal);
+  App.DomRefs.systemPromptCloseBtn.onclick = App.safeAsync(App.closeSystemPromptModal);
   document.addEventListener('keydown', function (event) {
-    if (event.key === 'Escape' && !App.DomRefs.systemPromptModal.classList.contains('u-none')) {
+    if (event.key === 'Escape' && App.DomRefs.systemPromptModal && !App.DomRefs.systemPromptModal.classList.contains('u-none')) {
       App.closeSystemPromptModal();
     }
   });
-  App.DomRefs.saveConfigBtn.onclick = App.saveConfiguration;
+  App.DomRefs.saveConfigBtn.onclick = App.safeAsync(App.saveConfiguration);
 
   /* ---- Chat action buttons ---- */
-  App.DomRefs.clearHistoryBtn.onclick = App.clearAllMessages;
-  App.DomRefs.exportBtn.onclick = App.exportConversation;
-  App.DomRefs.importBtn.onclick = App.triggerImportDialog;
-  App.DomRefs.stopGenBtn.onclick = App.stopGeneration;
+  App.DomRefs.clearHistoryBtn.onclick = App.safeAsync(App.clearAllMessages);
+  App.DomRefs.exportBtn.onclick = App.safeAsync(App.exportConversation);
+  App.DomRefs.importBtn.onclick = App.safeAsync(App.triggerImportDialog);
+  App.DomRefs.stopGenBtn.onclick = App.safeAsync(App.stopGeneration);
 
   /* ---- Scroll ---- */
   var scrollTicking = false;
@@ -36,9 +36,9 @@ function bindAllEvents() {
       scrollTicking = true;
     }
   });
-  App.DomRefs.scrollToBottomBtn.onclick = function () {
+  App.DomRefs.scrollToBottomBtn.onclick = App.safeAsync(function () {
     App.DomRefs.chatContainer.scrollTop = App.DomRefs.chatContainer.scrollHeight;
-  };
+  });
 }
 
 App.bindAllEvents = bindAllEvents;
